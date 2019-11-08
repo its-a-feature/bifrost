@@ -9,16 +9,16 @@
  (____/'(_)(_)   (_)  `\___/'(____/`\__)
                                         
 ```
-
+```
 Usage:
-./bifrost -action [dump | list | askhash | describe | asktgt | asktgs | s4u | ptt | remove]
-For dump action:
-    -source [tickets | keytab]
-        for keytab, optional -path to specify a keytab
-        for tickets, optional -name to specify a ccache entry to dump
-For list action:
-     no other options are necessary
-For askhash action:
+./bifrost -action [dump | list | askhash | describe | asktgt | asktgs | s4u | ptt | remove]  
+For dump action:  
+    -source [tickets | keytab]  
+        for keytab, optional -path to specify a keytab  
+        for tickets, optional -name to specify a ccache entry to dump  
+For list action:  
+     no other options are necessary  
+For askhash action:  
     -username a.test -password 'mypassword' -domain DOMAIN.COM
          optionally specify -enctype [aes256 | aes128 | rc4] or get all of them
 For asktgt action:
@@ -51,3 +51,4 @@ For remove:
      for keytabs: -source keytab -principal [principal name] (removes all entries for that principal)
      for keytabs: optionally specify -name to not use the default ccache
      you can't remove a specific ccache principal entry since it seems to not be implemented in heimdal
+```
