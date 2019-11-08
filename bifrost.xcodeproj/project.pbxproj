@@ -1,0 +1,410 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5D01E82B236CD9A500A50D21 /* KerbApp12.h in Headers */ = {isa = PBXBuildFile; fileRef = 5D01E82A236CD9A500A50D21 /* KerbApp12.h */; };
+		5D01E82D236CD9B600A50D21 /* KerbApp12.m in Sources */ = {isa = PBXBuildFile; fileRef = 5D01E82C236CD9B600A50D21 /* KerbApp12.m */; };
+		5DCB3D12235FC7A40084BD72 /* connection.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DCB3D11235FC7A40084BD72 /* connection.m */; };
+		5DD39B59235A341D000B7FF2 /* kirbi.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DD39B58235A341D000B7FF2 /* kirbi.m */; };
+		5DD39B5B235A3490000B7FF2 /* asn1.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DD39B5A235A3490000B7FF2 /* asn1.m */; };
+		5DD39B5D235A34A1000B7FF2 /* asn1.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DD39B5C235A34A1000B7FF2 /* asn1.h */; };
+		5DD39B5F235A3B48000B7FF2 /* kirbi.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DD39B5E235A3B48000B7FF2 /* kirbi.h */; };
+		5DEC51AF236402460000F04E /* KerbInteger.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DEC51AE236402460000F04E /* KerbInteger.m */; };
+		5DEC51B1236402620000F04E /* KerbInteger.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51B0236402620000F04E /* KerbInteger.h */; };
+		5DEC51B3236404C30000F04E /* KerbOctetString.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51B2236404C30000F04E /* KerbOctetString.h */; };
+		5DEC51B5236404FB0000F04E /* KerbOctetString.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DEC51B4236404FB0000F04E /* KerbOctetString.m */; };
+		5DEC51B7236407810000F04E /* KerbGenericString.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DEC51B6236407810000F04E /* KerbGenericString.m */; };
+		5DEC51B9236407930000F04E /* KerbGenericString.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51B8236407930000F04E /* KerbGenericString.h */; };
+		5DEC51BB236510690000F04E /* KerbApp29.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51BA236510690000F04E /* KerbApp29.h */; };
+		5DEC51BD236510790000F04E /* KerbApp29.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DEC51BC236510790000F04E /* KerbApp29.m */; };
+		C38E2ABD2354E3AD001C40B5 /* bifrost.h in Headers */ = {isa = PBXBuildFile; fileRef = C38E2ABC2354E3AD001C40B5 /* bifrost.h */; };
+		C38E2ABF2354E3AD001C40B5 /* bifrost.m in Sources */ = {isa = PBXBuildFile; fileRef = C38E2ABE2354E3AD001C40B5 /* bifrost.m */; };
+		C38E2ADF2354F0B9001C40B5 /* Kerberos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38E2ADE2354F0B9001C40B5 /* Kerberos.framework */; };
+		C3FAEC652364100600E95BF0 /* KerbBitString.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC642364100600E95BF0 /* KerbBitString.h */; };
+		C3FAEC672364103C00E95BF0 /* KerbBitString.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC662364103C00E95BF0 /* KerbBitString.m */; };
+		C3FAEC69236411EE00E95BF0 /* KerbGeneralizedTime.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC68236411EE00E95BF0 /* KerbGeneralizedTime.m */; };
+		C3FAEC6B236411FF00E95BF0 /* KerbGeneralizedTime.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC6A236411FF00E95BF0 /* KerbGeneralizedTime.h */; };
+		C3FAEC6D2364169A00E95BF0 /* KerbSequence.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC6C2364169A00E95BF0 /* KerbSequence.h */; };
+		C3FAEC6F236416BA00E95BF0 /* KerbSequence.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC6E236416BA00E95BF0 /* KerbSequence.m */; };
+		C3FAEC7223641B4400E95BF0 /* KerbCNamePrincipal.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC7123641B4400E95BF0 /* KerbCNamePrincipal.h */; };
+		C3FAEC7423641B8F00E95BF0 /* KerbCNamePrincipal.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC7323641B8F00E95BF0 /* KerbCNamePrincipal.m */; };
+		C3FAEC76236420D700E95BF0 /* KerbSNamePrincipal.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC75236420D700E95BF0 /* KerbSNamePrincipal.h */; };
+		C3FAEC78236420EB00E95BF0 /* KerbSNamePrincipal.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC77236420EB00E95BF0 /* KerbSNamePrincipal.m */; };
+		C3FAEC7A2364C59800E95BF0 /* KerbApp1.h in Headers */ = {isa = PBXBuildFile; fileRef = C3FAEC792364C59800E95BF0 /* KerbApp1.h */; };
+		C3FAEC7C2364C96100E95BF0 /* KerbApp1.m in Sources */ = {isa = PBXBuildFile; fileRef = C3FAEC7B2364C96100E95BF0 /* KerbApp1.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		5D01E82A236CD9A500A50D21 /* KerbApp12.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbApp12.h; sourceTree = "<group>"; };
+		5D01E82C236CD9B600A50D21 /* KerbApp12.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbApp12.m; sourceTree = "<group>"; };
+		5DCB3D10235FC7830084BD72 /* connection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = connection.h; sourceTree = "<group>"; };
+		5DCB3D11235FC7A40084BD72 /* connection.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = connection.m; sourceTree = "<group>"; };
+		5DD39B58235A341D000B7FF2 /* kirbi.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = kirbi.m; sourceTree = "<group>"; };
+		5DD39B5A235A3490000B7FF2 /* asn1.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = asn1.m; sourceTree = "<group>"; };
+		5DD39B5C235A34A1000B7FF2 /* asn1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = asn1.h; sourceTree = "<group>"; };
+		5DD39B5E235A3B48000B7FF2 /* kirbi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = kirbi.h; sourceTree = "<group>"; };
+		5DEC51AE236402460000F04E /* KerbInteger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbInteger.m; sourceTree = "<group>"; };
+		5DEC51B0236402620000F04E /* KerbInteger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbInteger.h; sourceTree = "<group>"; };
+		5DEC51B2236404C30000F04E /* KerbOctetString.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbOctetString.h; sourceTree = "<group>"; };
+		5DEC51B4236404FB0000F04E /* KerbOctetString.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbOctetString.m; sourceTree = "<group>"; };
+		5DEC51B6236407810000F04E /* KerbGenericString.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbGenericString.m; sourceTree = "<group>"; };
+		5DEC51B8236407930000F04E /* KerbGenericString.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbGenericString.h; sourceTree = "<group>"; };
+		5DEC51BA236510690000F04E /* KerbApp29.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbApp29.h; sourceTree = "<group>"; };
+		5DEC51BC236510790000F04E /* KerbApp29.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbApp29.m; sourceTree = "<group>"; };
+		C38E2AB92354E3AD001C40B5 /* libbifrost.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libbifrost.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		C38E2ABC2354E3AD001C40B5 /* bifrost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bifrost.h; sourceTree = "<group>"; };
+		C38E2ABE2354E3AD001C40B5 /* bifrost.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = bifrost.m; sourceTree = "<group>"; };
+		C38E2ADE2354F0B9001C40B5 /* Kerberos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kerberos.framework; path = System/Library/Frameworks/Kerberos.framework; sourceTree = SDKROOT; };
+		C3FAEC642364100600E95BF0 /* KerbBitString.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbBitString.h; sourceTree = "<group>"; };
+		C3FAEC662364103C00E95BF0 /* KerbBitString.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbBitString.m; sourceTree = "<group>"; };
+		C3FAEC68236411EE00E95BF0 /* KerbGeneralizedTime.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbGeneralizedTime.m; sourceTree = "<group>"; };
+		C3FAEC6A236411FF00E95BF0 /* KerbGeneralizedTime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbGeneralizedTime.h; sourceTree = "<group>"; };
+		C3FAEC6C2364169A00E95BF0 /* KerbSequence.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbSequence.h; sourceTree = "<group>"; };
+		C3FAEC6E236416BA00E95BF0 /* KerbSequence.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbSequence.m; sourceTree = "<group>"; };
+		C3FAEC7123641B4400E95BF0 /* KerbCNamePrincipal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbCNamePrincipal.h; sourceTree = "<group>"; };
+		C3FAEC7323641B8F00E95BF0 /* KerbCNamePrincipal.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbCNamePrincipal.m; sourceTree = "<group>"; };
+		C3FAEC75236420D700E95BF0 /* KerbSNamePrincipal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbSNamePrincipal.h; sourceTree = "<group>"; };
+		C3FAEC77236420EB00E95BF0 /* KerbSNamePrincipal.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbSNamePrincipal.m; sourceTree = "<group>"; };
+		C3FAEC792364C59800E95BF0 /* KerbApp1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbApp1.h; sourceTree = "<group>"; };
+		C3FAEC7B2364C96100E95BF0 /* KerbApp1.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbApp1.m; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C38E2AB72354E3AD001C40B5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C38E2ADF2354F0B9001C40B5 /* Kerberos.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C38E2AB02354E3AD001C40B5 = {
+			isa = PBXGroup;
+			children = (
+				C38E2ABB2354E3AD001C40B5 /* bifrost */,
+				C38E2ABA2354E3AD001C40B5 /* Products */,
+				C38E2ADD2354F0B9001C40B5 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		C38E2ABA2354E3AD001C40B5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C38E2AB92354E3AD001C40B5 /* libbifrost.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C38E2ABB2354E3AD001C40B5 /* bifrost */ = {
+			isa = PBXGroup;
+			children = (
+				C38E2ABC2354E3AD001C40B5 /* bifrost.h */,
+				C38E2ABE2354E3AD001C40B5 /* bifrost.m */,
+				5DD39B5E235A3B48000B7FF2 /* kirbi.h */,
+				5DD39B58235A341D000B7FF2 /* kirbi.m */,
+				5DD39B5C235A34A1000B7FF2 /* asn1.h */,
+				5DD39B5A235A3490000B7FF2 /* asn1.m */,
+				5DCB3D10235FC7830084BD72 /* connection.h */,
+				5DCB3D11235FC7A40084BD72 /* connection.m */,
+				5DEC51B0236402620000F04E /* KerbInteger.h */,
+				5DEC51AE236402460000F04E /* KerbInteger.m */,
+				5DEC51B2236404C30000F04E /* KerbOctetString.h */,
+				5DEC51B4236404FB0000F04E /* KerbOctetString.m */,
+				5DEC51B6236407810000F04E /* KerbGenericString.m */,
+				5DEC51B8236407930000F04E /* KerbGenericString.h */,
+				C3FAEC642364100600E95BF0 /* KerbBitString.h */,
+				C3FAEC662364103C00E95BF0 /* KerbBitString.m */,
+				C3FAEC68236411EE00E95BF0 /* KerbGeneralizedTime.m */,
+				C3FAEC6A236411FF00E95BF0 /* KerbGeneralizedTime.h */,
+				C3FAEC6C2364169A00E95BF0 /* KerbSequence.h */,
+				C3FAEC6E236416BA00E95BF0 /* KerbSequence.m */,
+				C3FAEC7123641B4400E95BF0 /* KerbCNamePrincipal.h */,
+				C3FAEC7323641B8F00E95BF0 /* KerbCNamePrincipal.m */,
+				C3FAEC75236420D700E95BF0 /* KerbSNamePrincipal.h */,
+				C3FAEC77236420EB00E95BF0 /* KerbSNamePrincipal.m */,
+				C3FAEC792364C59800E95BF0 /* KerbApp1.h */,
+				C3FAEC7B2364C96100E95BF0 /* KerbApp1.m */,
+				5DEC51BA236510690000F04E /* KerbApp29.h */,
+				5DEC51BC236510790000F04E /* KerbApp29.m */,
+				5D01E82A236CD9A500A50D21 /* KerbApp12.h */,
+				5D01E82C236CD9B600A50D21 /* KerbApp12.m */,
+			);
+			path = bifrost;
+			sourceTree = "<group>";
+		};
+		C38E2ADD2354F0B9001C40B5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C38E2ADE2354F0B9001C40B5 /* Kerberos.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		C38E2AB52354E3AD001C40B5 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3FAEC6B236411FF00E95BF0 /* KerbGeneralizedTime.h in Headers */,
+				C3FAEC652364100600E95BF0 /* KerbBitString.h in Headers */,
+				5DD39B5F235A3B48000B7FF2 /* kirbi.h in Headers */,
+				C3FAEC76236420D700E95BF0 /* KerbSNamePrincipal.h in Headers */,
+				5DEC51B1236402620000F04E /* KerbInteger.h in Headers */,
+				5D01E82B236CD9A500A50D21 /* KerbApp12.h in Headers */,
+				5DEC51B9236407930000F04E /* KerbGenericString.h in Headers */,
+				C38E2ABD2354E3AD001C40B5 /* bifrost.h in Headers */,
+				C3FAEC7223641B4400E95BF0 /* KerbCNamePrincipal.h in Headers */,
+				5DEC51B3236404C30000F04E /* KerbOctetString.h in Headers */,
+				5DD39B5D235A34A1000B7FF2 /* asn1.h in Headers */,
+				5DEC51BB236510690000F04E /* KerbApp29.h in Headers */,
+				C3FAEC7A2364C59800E95BF0 /* KerbApp1.h in Headers */,
+				C3FAEC6D2364169A00E95BF0 /* KerbSequence.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		C38E2AB82354E3AD001C40B5 /* bifrost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C38E2AC22354E3AD001C40B5 /* Build configuration list for PBXNativeTarget "bifrost" */;
+			buildPhases = (
+				C38E2AB52354E3AD001C40B5 /* Headers */,
+				C38E2AB62354E3AD001C40B5 /* Sources */,
+				C38E2AB72354E3AD001C40B5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = bifrost;
+			productName = bifrost;
+			productReference = C38E2AB92354E3AD001C40B5 /* libbifrost.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C38E2AB12354E3AD001C40B5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = "@its_a_feature_";
+				TargetAttributes = {
+					C38E2AB82354E3AD001C40B5 = {
+						CreatedOnToolsVersion = 10.2.1;
+					};
+				};
+			};
+			buildConfigurationList = C38E2AB42354E3AD001C40B5 /* Build configuration list for PBXProject "bifrost" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C38E2AB02354E3AD001C40B5;
+			productRefGroup = C38E2ABA2354E3AD001C40B5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C38E2AB82354E3AD001C40B5 /* bifrost */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C38E2AB62354E3AD001C40B5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3FAEC69236411EE00E95BF0 /* KerbGeneralizedTime.m in Sources */,
+				5D01E82D236CD9B600A50D21 /* KerbApp12.m in Sources */,
+				C38E2ABF2354E3AD001C40B5 /* bifrost.m in Sources */,
+				C3FAEC7423641B8F00E95BF0 /* KerbCNamePrincipal.m in Sources */,
+				5DEC51AF236402460000F04E /* KerbInteger.m in Sources */,
+				5DEC51BD236510790000F04E /* KerbApp29.m in Sources */,
+				5DEC51B5236404FB0000F04E /* KerbOctetString.m in Sources */,
+				5DD39B5B235A3490000B7FF2 /* asn1.m in Sources */,
+				C3FAEC672364103C00E95BF0 /* KerbBitString.m in Sources */,
+				5DD39B59235A341D000B7FF2 /* kirbi.m in Sources */,
+				5DEC51B7236407810000F04E /* KerbGenericString.m in Sources */,
+				C3FAEC78236420EB00E95BF0 /* KerbSNamePrincipal.m in Sources */,
+				C3FAEC6F236416BA00E95BF0 /* KerbSequence.m in Sources */,
+				5DCB3D12235FC7A40084BD72 /* connection.m in Sources */,
+				C3FAEC7C2364C96100E95BF0 /* KerbApp1.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C38E2AC02354E3AD001C40B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C38E2AC12354E3AD001C40B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C38E2AC32354E3AD001C40B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				EXECUTABLE_PREFIX = lib;
+				"HEADER_SEARCH_PATHS[arch=*]" = "/Volumes/Apfell/**";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		C38E2AC42354E3AD001C40B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				EXECUTABLE_PREFIX = lib;
+				"HEADER_SEARCH_PATHS[arch=*]" = "/Volumes/Apfell/**";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C38E2AB42354E3AD001C40B5 /* Build configuration list for PBXProject "bifrost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C38E2AC02354E3AD001C40B5 /* Debug */,
+				C38E2AC12354E3AD001C40B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C38E2AC22354E3AD001C40B5 /* Build configuration list for PBXNativeTarget "bifrost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C38E2AC32354E3AD001C40B5 /* Debug */,
+				C38E2AC42354E3AD001C40B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = C38E2AB12354E3AD001C40B5 /* Project object */;
+}
