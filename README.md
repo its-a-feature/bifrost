@@ -55,9 +55,14 @@ For remove:
      you can't remove a specific ccache principal entry since it seems to not be implemented in heimdal
 ```
 # Table of Contents
-
+- [Overview](#overview)
+- [commands]
+    - [list](#list)
+    - [dump](#dump)
+        -[tickets](#tickets)
+        -[keytab](#keytab)
 ## Overview
-
+Bifrost is an Objective-C project designed to interact with the Heimdal krb5 APIs on macOS. Bifrost compiles into a static library (but you can change that to a dylib if needed), and bifrostconsole is a simple console project that uses the Bifrost library. 
 ## list
 The `-action list` command will loop through all of the credential caches in memory and give basic information about each cache and each entry within. It will also identify the default cache with the `[*]` marker and each other cache with the `[+]` marker.
 ## dump
