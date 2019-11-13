@@ -606,6 +606,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     data.data = (char*)password.UTF8String;
     data.magic = KV5M_KEYBLOCK;
     data.length =  (uint)password.length;
+
     // to generate the right salt
     //https://blogs.technet.microsoft.com/pie/2018/01/03/all-you-need-to-know-about-keytab-files/
     krb5_data salt;

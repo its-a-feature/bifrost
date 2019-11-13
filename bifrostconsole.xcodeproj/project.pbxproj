@@ -253,7 +253,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				"HEADER_SEARCH_PATHS[arch=*]" = "/Volumes/APFELL/**";
+				"HEADER_SEARCH_PATHS[arch=*]" = "/users/cody/bifrost/**";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -262,7 +262,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				"HEADER_SEARCH_PATHS[arch=*]" = "/Volumes/APFELL/**";
+				"HEADER_SEARCH_PATHS[arch=*]" = "~/**";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

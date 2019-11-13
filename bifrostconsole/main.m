@@ -19,14 +19,16 @@ void printHelp(){
     printf("For askhash action:\n");
     printf("\t-username a.test -password 'mypassword' -domain DOMAIN.COM\n");
     printf("\t\t optionally specify -enctype [aes256 | aes128 | rc4] or get all of them\n");
+    printf("\t\t optionally specify -bpassword 'base64 of password' in case there might be issues with parsing or special characters\n");
     printf("For asktgt action:\n");
     printf("\t-username a.test -domain DOMAIN.COM\n");
     printf("\t\t if using a plaintext password, specify -password 'password'\n");
     printf("\t\t if using a hash, specify -enctype [aes256 | aes128 | rc4] -hash [hash_here]\n");
     printf("\t\t\t optionally specify -tgtEnctype [aes256|aes128|rc4] to request a TGT with a specific encryption type\n");
+    printf("\t\t\t optionally specify -supportAll false to indicate that you want a TGT to match your hash enctype, otherwise will try to get AES256\n");
     printf("\t\t if using a keytab, specify -enctype and -keytab [keytab path] to pull a specific hash from the keytab\n");
     printf("\t\t\t optionally specify -tgtEnctype [aes256|aes128|rc4] to request a TGT with a specific encryption type\n");
-    printf("\t\t optionally specify -supportAll false to indicate that you want a TGT to match your hash enctype, otherwise will try to get AES256\n");
+    printf("\t\t\t optionally specify -supportAll false to indicate that you want a TGT to match your hash enctype, otherwise will try to get AES256\n");
     printf("For describe action:\n");
     printf("\t-ticket base64KirbiTicket\n");
     printf("For asktgs action:\n");
@@ -47,7 +49,7 @@ void printHelp(){
     printf("For remove:\n");
     printf("\t for tickets: -source tickets -name [name here] (removes an entire ccache)\n");
     printf("\t for keytabs: -source keytab -principal [principal name] (removes all entries for that principal)\n");
-    printf("\t for keytabs: optionally specify -name to not use the default ccache\n");
+    printf("\t for keytabs: optionally specify -name to not use the default keytab\n");
     printf("\t you can't remove a specific ccache principal entry since it seems to not be implemented in heimdal\n");
 }
 int main(int argc, const char * argv[]) {
@@ -137,7 +139,10 @@ int main(int argc, const char * argv[]) {
             }
             if( [arguments objectForKey:@"password"] ){
                 password = [arguments stringForKey:@"password"];
-            } else {
+            } else if([ arguments objectForKey:@"bpassword"] ){
+                NSString* encodedPassword = [arguments stringForKey:@"bpassword"];
+                password = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:encodedPassword options:0] encoding:NSUTF8StringEncoding];
+            }else{
                 printf("[-] Missing -password\n");
                 return 0;
             }
@@ -197,6 +202,15 @@ int main(int argc, const char * argv[]) {
             if( [arguments objectForKey:@"password"] ){
                 //get a user's TGT with a username, password, and domain
                 password = [arguments stringForKey:@"password"];
+                NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
+                if(tgtStatus == NULL){
+                    return -1;
+                }else{
+                    printf("%s\n", tgtStatus.UTF8String);
+                }
+            }else if([ arguments objectForKey:@"bpassword"] ){
+                NSString* encodedPassword = [arguments stringForKey:@"bpassword"];
+                password = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:encodedPassword options:0] encoding:NSUTF8StringEncoding];
                 NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
                 if(tgtStatus == NULL){
                     return -1;
