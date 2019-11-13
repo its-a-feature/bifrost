@@ -56,11 +56,26 @@ For remove:
 ```
 # Table of Contents
 - [Overview](#overview)
-- [commands]
+- commands
     - [list](#list)
-    - [dump](#dump)
-        -[tickets](#tickets)
-        -[keytab](#keytab)
+    - [dump](#dump)  
+        - [tickets](#tickets)  
+        - [keytab](#keytab)  
+    - [askhash](#askhash)  
+    - [asktgt](#asktgt)
+        - [with plaintext](#with-plaintext-password)    
+        - [with hash](#with-hash)
+        - [with keytab entry](#with-keytab-entry)
+    - [describe](#describe)
+    - [asktgs](#asktgs)
+        - [different domains](#different-domains)
+        - [kerberoasting](#kerberoasting)
+    - [s4u](#s4u)
+    - [ptt](#ptt)
+    - [remove](#remove)
+        - [credential cache](#credential-cache)
+        - [keytab entry](#keytab-entry)
+        
 ## Overview
 Bifrost is an Objective-C project designed to interact with the Heimdal krb5 APIs on macOS. Bifrost compiles into a static library (but you can change that to a dylib if needed), and bifrostconsole is a simple console project that uses the Bifrost library. 
 ## list
