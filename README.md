@@ -77,7 +77,9 @@ For remove:
         - [keytab entry](#keytab-entry)
         
 ## Overview
-Bifrost is an Objective-C project designed to interact with the Heimdal krb5 APIs on macOS. Bifrost compiles into a static library (but you can change that to a dylib if needed), and bifrostconsole is a simple console project that uses the Bifrost library. 
+Bifrost is an Objective-C project designed to interact with the Heimdal krb5 APIs on macOS. Bifrost compiles into a static library (but you can change that to a dylib if needed), and bifrostconsole is a simple console project that uses the Bifrost library. The goal of the project is to enable better security testing around Kerberos on macOS devices using native APIs without requiring any other framework or packages on the target.
+
+Since this needs to be compiled on a Mac, and that might not be easily available to everybody for testing purposes, I've included a compiled version of the console and the library in the "compiled_binaries" folder. Since these are pre-compiled, expect them to be heavily signatured and only usable for personal testing purposes.
 ## list
 The `-action list` command will loop through all of the credential caches in memory and give basic information about each cache and each entry within. It will also identify the default cache with the `[*]` marker and each other cache with the `[+]` marker.
 ```
