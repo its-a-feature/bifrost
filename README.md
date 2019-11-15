@@ -193,7 +193,7 @@ bash-3.2$ sudo ./bifrost -action dump -source keytab
     Key: 1F44A5E5C7919C00F3166A1344D4FFDA
 ```
 ## askhash
-The `-action askhash` will compute the necessary hashes used to request TGTs and decrypt responses. This command requires the plaintext password with `-password [password here]`, but if the passwoord contains special characters that might cause issues, you can always supply a base64 encoded version of the password with `-bpassword [base64 password here]`. You must also supply the `-username [username]` and `-domain fqdn` parameters so that the proper salt can be generated. 
+The `-action askhash` will compute the necessary hashes used to request TGTs and decrypt responses. This command requires the plaintext password with `-password [password here]`, but if the password contains special characters that might cause issues, you can always supply a base64 encoded version of the password with `-bpassword [base64 password here]`. You must also supply the `-username [username]` and `-domain fqdn` parameters so that the proper salt can be generated. 
 
 If you're wanting to get the hashes for a computer$ account, make sure to include the `$` in the username. The salt for a computer account is different than the salt for a user account.
 ```
