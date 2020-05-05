@@ -153,17 +153,18 @@ int main(int argc, const char * argv[]) {
                 printf("[-] Missing -domain\n");
                 return 0;
             }
-            NSString *key = [test genPasswordHashPassword:password Enc:enctype Username:username Domain:domain];
+            NSString *key = [test genPasswordHashPassword:password.UTF8String Length:password.length Enc:enctype Username:username Domain:domain Pretty:TRUE];
             printf("\n%s\n", key.UTF8String);
         }
         else if( [action isEqualToString:@"asktgt"]){
             uint enctype = 0;
             uint tgtEnctype = 0;
-            NSString* username;
-            NSString* password;
-            NSString* domain;
-            NSString* hash;
+            NSString* username = NULL;
+            NSString* password = NULL;
+            NSString* domain = NULL;
+            NSString* hash = NULL;
             NSString* keytab = NULL;
+            NSString* connectDomain = NULL;
             bool supportAll = true;
             if( [arguments objectForKey:@"enctype"] ){
                 NSString* enctypeString = [arguments stringForKey:@"enctype"];
@@ -188,52 +189,55 @@ int main(int argc, const char * argv[]) {
                 printf("[-] Missing username\n");
                 return 0;
             }
+            if( [arguments objectForKey:@"supportAll"] ){
+                supportAll = [arguments boolForKey:@"supportAll"];
+            }
             if( [arguments objectForKey:@"domain"] ){
                 domain = [arguments stringForKey:@"domain"];
                 domain = [domain uppercaseString];
             }
-            else {
-                printf("[-] Missing domain\n");
-                return 0;
+            if( [arguments objectForKey:@"connectDomain"] ){
+                connectDomain = [arguments stringForKey:@"connectDomain"];
             }
-            if( [arguments objectForKey:@"supportAll"] ){
-                supportAll = [arguments boolForKey:@"supportAll"];
+            else {
+                connectDomain = domain;
             }
             if( [arguments objectForKey:@"password"] ){
+                //TODO: go back and make this generate a password hash instead
                 //get a user's TGT with a username, password, and domain
                 password = [arguments stringForKey:@"password"];
-                NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
-                if(tgtStatus == NULL){
-                    return -1;
-                }else{
-                    printf("%s\n", tgtStatus.UTF8String);
-                }
-            }else if([ arguments objectForKey:@"bpassword"] ){
+            }
+            else if([ arguments objectForKey:@"bpassword"] ){
                 NSString* encodedPassword = [arguments stringForKey:@"bpassword"];
                 password = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:encodedPassword options:0] encoding:NSUTF8StringEncoding];
-                NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
-                if(tgtStatus == NULL){
-                    return -1;
-                }else{
-                    printf("%s\n", tgtStatus.UTF8String);
-                }
             }
-            else if( [arguments objectForKey:@"hash"]){
+            if(password != NULL){
+                //we have a plaintext password eitehr for regular AD or for LKDC
+                if( [arguments objectForKey:@"LKDCByIP"]){
+                    //Use the supplied data to connect to the LKDC by IP address (could be local or remote, but IP is supplied)
+                    NSString* IP = [arguments stringForKey:@"LKDCByIP"];
+                    [test askTGTLKDCByIP:IP EncType:enctype Password:password Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
+                }
+                else if( [arguments objectForKey:@"LKDCByHostname"]){
+                    //Use the supplied data to connect to the LKDC by Hostname, so it will be resolved
+                }
+                else{
+                    NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
+                    if(tgtStatus == NULL){
+                        return -1;
+                    }else{
+                        printf("%s\n", tgtStatus.UTF8String);
+                    }
+                }
+                return 0;
+            }
+            if( [arguments objectForKey:@"hash"]){
                 //get a user's TGT with a username, hash, and domain
                 hash = [arguments stringForKey:@"hash"];
                 if(enctype == 0){
-                    printf("[-] Must supply -enctype [aes256|aes128|rc4|des3] with -hash\n");
+                    printf("[-] Must supply -enctype [aes256|aes128|rc4|des3] with -hash to identify the type of hash supplied\n");
                     return -1;
                 }
-                if( tgtEnctype != 0 ){
-                    //specify the desired end ticket encryption type if desired to be different than the hash's enc type and not negotiated
-                    printf("[*] Requesting hash type: %d\n", tgtEnctype);
-                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype];
-                }
-                else{
-                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
-                }
-                
             }
             else if( [arguments objectForKey:@"keytab"]){
                 //use username and domain to find the right entry in the keytab
@@ -248,20 +252,22 @@ int main(int argc, const char * argv[]) {
                     return -1;
                 }
                 printf("[+] Using hash: %s\n", hash.UTF8String);
-                
-                if( tgtEnctype != 0 ){
-                    //specify the desired end ticket encryption type if desired to be different than the hash's enc type and not negotiated
-                    printf("[*] Requesting hash type: %d\n", tgtEnctype);
-                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype];
-                }
-                else{
-                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
-                }
-                
             }
             else {
                 printf("[-] No hash or password supplied\n");
+                return -1;
             }
+            // perform normal Active Directory kerberos traffic based on the supplied data
+            if( tgtEnctype != 0 ){
+                //specify the desired end ticket encryption type if desired to be different than the hash's enc type and not negotiated
+                printf("[*] Requesting hash type: %d\n", tgtEnctype);
+                [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype];
+            }
+            else{
+                [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
+            }
+            return 0;
+            
         }
         else if( [action isEqualToString:@"asktgs"] ){
             NSString* encodedTicket;
@@ -297,12 +303,8 @@ int main(int argc, const char * argv[]) {
             for(int i = 0; i < [serviceList count]; i++){
                 NSString* service = (NSString*)[serviceList objectAtIndex:i];
                 NSString* result = [test askTGSConnectDomain:connectDomain TGT:encodedTicket Service:service ServiceDomain:serviceDomain Kerberoast:kerberoast];
-                if(result == NULL){
-                    printf("[-] Failed to get service ticket\n");
-                }else{
-                    printf("[+] Successfully got service ticket\n");
-                }
             }
+            return 0;
         }
         else if( [action isEqualToString:@"list"] ){
             [test listAllCCaches];

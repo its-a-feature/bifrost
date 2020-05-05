@@ -18,6 +18,8 @@
 
 -(int)connectDomain:(char*)domain;
 -(int)sendBytes:(NSData*)bytes;
+-(int)connectLKDCByIP:(char*)ip;
+-(int)connectLKDCByHostname:(char*)hostname;
 -(NSData*)recvBytes;
 -(void)closeConnection;
 

@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5D2911322373AFE2001406F1 /* libbifrost.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5D2911312373AFE2001406F1 /* libbifrost.a */; };
+		C31ED0F824143AD20078B006 /* libbifrost.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5D2911312373AFE2001406F1 /* libbifrost.a */; };
 		C38E2AD22354E3CE001C40B5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = C38E2AD12354E3CE001C40B5 /* main.m */; };
 /* End PBXBuildFile section */
 
@@ -34,7 +34,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5D2911322373AFE2001406F1 /* libbifrost.a in Frameworks */,
+				C31ED0F824143AD20078B006 /* libbifrost.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,7 +253,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
+				GENERATE_MASTER_OBJECT_FILE = NO;
 				"HEADER_SEARCH_PATHS[arch=*]" = "/users/cody/bifrost/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
+				);
+				LINKER_DISPLAYS_MANGLED_NAMES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -262,7 +271,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
+				GENERATE_MASTER_OBJECT_FILE = NO;
 				"HEADER_SEARCH_PATHS[arch=*]" = "~/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
+				);
+				LINKER_DISPLAYS_MANGLED_NAMES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

@@ -18,7 +18,7 @@
 #import "KerbApp1.h"
 #import "KerbApp29.h"
 #import "KerbApp12.h"
-
+#import "SRPClient.h"
 
 /* AS-REQ
  Application 22 (0x76), few bytes of size
@@ -84,17 +84,25 @@ NSData* createKirbi(Krb5Ticket krb_cred);
 NSString* describeTicket(Krb5Ticket ticket);
 Krb5Ticket parseKirbi(NSData* data);
 NSData* createPADataTimestamp(void);
-NSData* createPADataASReq(int enctype, NSString* hash);
+NSData* createPADataASReq(int enctype, NSString* hash, NSArray* PADATATypes, NSArray* ExtraPADATAInfo);
 NSData* dataFromHexString(NSString* hex);
 NSData* encryptKrbData(krb5_keyusage usage, int enctype, NSData* plaintextDataToEncrypt, NSString* hash);
 NSData* createGeneralizedTime(int daysFromNow);
-NSData* createASREQ(int enc_type, NSString* hash, NSString* clientName, NSString* domain, bool supportAll, int tgtEnctype);
+NSData* createASREQ(int enc_type, NSString* hash, NSString* clientName, NSString* domain, bool supportAll, int tgtEnctype, NSArray* PADATATypes, NSArray* ExtraPADATAInfo);
 Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type);
 void parseKerberosTicket(Krb5Ticket* parsedTicket, ASN1_Obj* baseBlob);
 NSData* decryptKrbData(krb5_keyusage usage, int enctype, NSData* encryptedData, NSString* hash);
 void parseASREPEncData(Krb5Ticket* parsedTicket, ASN1_Obj* baseBlob);
 NSData* createTGSREQ(Krb5Ticket TGT, NSString* service, bool kerberoasting, NSString* serviceDomain);
-Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT);
+Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting);
 NSData* createS4U2SelfReq(Krb5Ticket TGT, NSString* targetUser);
 NSData* createS4U2ProxyReq(Krb5Ticket sTicket, NSString* spn, NSString* spnDomain, NSData* innerTicket);
-
+//LKDC Functions
+NSData* LKDC_Stage1_GetRemoteRealm(NSString* username);
+NSString* LKDC_Stage1_ParseASREPForRemoteRealm(NSData* LKDC_Stage1_Rep);
+NSData* LKDC_Stage2_GetPADATAInfo(NSString* remoteRealm, NSString* username);
+NSArray* LKDC_Stage2_ParseASREPForPADATAInfo(NSData* LKDC_Stage2_Rep, SRPClient* srp, NSString* username, NSString* password);
+NSData* LKDC_Stage3_GetPADATAInfo(NSString* remoteRealm, NSString* username, NSArray* ExtraPADATAInfo);
+NSArray* LKDC_Stage3_ParseASREPForPADATAInfo(NSData* LKDC_Stage3_Rep, SRPClient* srp);
+NSData* LKDC_Stage4_GetPADATAInfo(NSString* remoteRealm, NSString* username, NSArray* ExtraPADATAInfo);
+NSArray* LKDC_Stage4_ParseASREPForPADATAInfo(NSData* LKDC_Stage4_Rep, SRPClient* srp);

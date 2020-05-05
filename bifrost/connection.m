@@ -51,7 +51,33 @@ int fd = 0;
     }
     printf("[-] Failed to connect to any IP address on port 88\n");
     return -1;
-    
+}
+-(int)connectLKDCByHostname:(char*) hostname{
+    return [self connectDomain: hostname];
+}
+-(int)connectLKDCByIP:(char*) ip{
+    // connect to the LKDC of a remote computer
+    int sockfd;
+    struct hostent *server;
+    struct sockaddr_in servaddr;
+    //create socket
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if(sockfd == -1){
+        printf("[-] Failed to create socket\n");
+        return -1;
+    }
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(88);
+    servaddr.sin_addr.s_addr = inet_addr(ip);
+    if(connect(sockfd, &servaddr, sizeof(servaddr)) < 0){
+        printf("[-] Failed to connect\n");
+        fd = 0;
+        return -1;
+    }
+    printf("[+] Successfully connected to remote IP: %s\n", ip);
+    fd = sockfd;
+    return 0;
 }
 -(int)sendBytes:(NSData*) data{
     int res;
