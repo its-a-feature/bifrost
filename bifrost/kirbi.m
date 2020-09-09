@@ -764,6 +764,221 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
         @throw exception;
     }
 }
+Krb5Ticket parseLKDCASREP(NSData* asrep, NSString* hash, int enc_type){
+    /*
+     *Application 11 (1 elem) (0x6B)
+         SEQUENCE (7 elem)
+         [0] (1 elem)
+           INTEGER 5
+         [1] (1 elem)
+           INTEGER 11
+         [2] (1 elem)
+           SEQUENCE (2 elem)
+             SEQUENCE (2 elem)
+               [1] (1 elem)
+                 INTEGER 3
+               [2] (1 elem)
+                 OCTET STRING (salt here))
+             SEQUENCE (2 elem)
+               [1] (1 elem)
+                 INTEGER 133 <-- fx cookie
+               [2] (1 elem)
+                 OCTET STRING (1 elem)
+                   SEQUENCE (2 elem)
+                     [0] (1 elem)
+                       SEQUENCE (2 elem)
+                         [0] (1 elem)
+                           SEQUENCE (2 elem)
+                             [0] (1 elem)
+                               INTEGER 1
+                             [1] (1 elem)
+                               SEQUENCE (1 elem)
+                                 GeneralString
+                         [1] (1 elem)
+                           SEQUENCE (2 elem)
+                             [0] (1 elem)
+                               INTEGER 1
+                             [1] (1 elem)
+                               SEQUENCE (1 elem)
+                                 GeneralString
+                     [1] (1 elem)
+                       SEQUENCE (2 elem)
+                         [0] (1 elem)
+                           INTEGER 16
+                         [1] (1 elem)
+                           OCTET STRING (12 byte) F64F29D4C1A0B66B835D51F2
+         [3] (1 elem)
+           GeneralString
+         [4] (1 elem)
+           SEQUENCE (2 elem)
+             [0] (1 elem)
+               INTEGER 1
+             [1] (1 elem)
+               SEQUENCE (1 elem)
+                 GeneralString
+         [5] (1 elem)
+           Application 1 (1 elem) <-- tgt
+             SEQUENCE (4 elem)
+               [0] (1 elem)
+                 INTEGER 5
+               [1] (1 elem)
+                 GeneralString
+               [2] (1 elem)
+                 SEQUENCE (2 elem)
+                   [0] (1 elem)
+                     INTEGER 2
+                   [1] (1 elem)
+                     SEQUENCE (2 elem)
+                       GeneralString
+                       GeneralString
+               [3] (1 elem)
+                 SEQUENCE (3 elem)
+                   [0] (1 elem)
+                     INTEGER 18
+                   [1] (1 elem)
+                     INTEGER 1
+                   [2] (1 elem)
+                     OCTET STRING (294 byte) 47F8FD62523D3997568110E3153105E1A91156932DFA69B8CD6B943B3FD849433011E…
+         [6] (1 elem)
+           SEQUENCE (3 elem)
+             [0] (1 elem)
+               INTEGER 17
+             [1] (1 elem)
+               INTEGER 7
+             [2] (1 elem)
+               OCTET STRING (363 byte) **enc2
+     
+     
+     **enc 2
+     Application 25 (1 elem)
+         SEQUENCE (12 elem)
+           [0] (1 elem)
+             SEQUENCE (2 elem)
+               [0] (1 elem)
+                 INTEGER 18
+               [1] (1 elem)
+                 OCTET STRING (32 byte) key
+           [1] (1 elem)
+             SEQUENCE (1 elem)
+               SEQUENCE (2 elem)
+                 [0] (1 elem)
+                   INTEGER 0
+                 [1] (1 elem)
+                   GeneralizedTime 2019-10-24 05:22:07 UTC
+           [2] (1 elem)
+             INTEGER nonce
+           [3] (1 elem)
+             GeneralizedTime 2037-09-14 02:48:05 UTC
+           [4] (1 elem)
+             BIT STRING (32 bit) 01000000111000010000000000000000
+           [5] (1 elem)
+             GeneralizedTime 2019-10-24 05:22:07 UTC (auth)
+           [6] (1 elem)
+             GeneralizedTime 2019-10-24 05:22:07 UTC (start)
+           [7] (1 elem)
+             GeneralizedTime 2019-10-25 05:22:07 UTC (end)
+           [8] (1 elem)
+             GeneralizedTime 2019-10-31 05:22:07 UTC (renew)
+           [9] (1 elem)
+             GeneralString
+           [10] (1 elem)
+             SEQUENCE (2 elem)
+               [0] (1 elem)
+                 INTEGER 2
+               [1] (1 elem)
+                 SEQUENCE (2 elem)
+                   GeneralString
+                   GeneralString
+           [12] (1 elem)
+             SEQUENCE (1 elem)
+               SEQUENCE (2 elem)
+                 [1] (1 elem)
+                   INTEGER 149
+                 [2] (1 elem)
+                   OCTET STRING (1 elem)
+                     SEQUENCE (2 elem)
+                       [0] (1 elem)
+                         INTEGER 16
+                       [1] (1 elem)
+                         OCTET STRING (12 byte)
+     */
+    Krb5Ticket TGT;
+    @try{
+        ASN1_Obj* baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)asrep.bytes)[0] Length:asrep.length Data:[[NSData alloc] initWithBytes:asrep.bytes length:asrep.length]];
+        ASN1_Obj* curBlob;
+        curBlob = getNextAsnBlob(baseBlob); //parse the main blob to indicate application 11
+        //printf("%s\n", [[NSString alloc] initWithData:[baseBlob.data base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
+        if(curBlob.type == 0x6B || curBlob.type == 0x7E){
+            //we're looking at an ASREP
+            curBlob = getNextAsnBlob(baseBlob); // gets 0x30
+            curBlob = getNextAsnBlob(baseBlob); // gets 0xA0
+            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 - should always be 5
+            curBlob = getNextAsnBlob(baseBlob); // gets 0xA1
+            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 msg type
+            int msg_type = [[KerbInteger alloc] initWithObject:curBlob].KerbIntValue;
+            if(msg_type == 0x1e){
+                //this means we got msg-type of krb-error
+                TGT.app1 = NULL;
+                TGT.app29 = NULL;
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA4
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x18 timestamp
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA5
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x02 nonce
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA6
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x02 error type
+                int error_code = getAsnIntegerBlob(curBlob); //should be 68
+                //printf("%d - ", getAsnIntegerBlob(curBlob));
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
+                NSString* realRealm = getAsnGenericStringBlob(curBlob);
+                //printf("Real realm: %s\n", getAsnGenericStringBlob(curBlob).UTF8String);
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA8
+                curBlob = carveAsnBlobObject(baseBlob); //carves out the cname
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xA9
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x1B realm, this is the WELLKNOWN realm again
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
+                curBlob = carveAsnBlobObject(baseBlob); // carves out sname
+                if(baseBlob.length == 0){
+                    printKerbError(error_code);
+                    return TGT;
+                }
+                curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
+                curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
+                NSString* error_message = getAsnGenericStringBlob(curBlob);
+                printKerbError(error_code);
+                printf("[-] e-data error: %s", error_message.UTF8String);
+                return TGT;
+            }
+            while(curBlob.type != 0xA4){
+                curBlob = getNextAsnBlob(baseBlob);
+            }
+            TGT.app29 = [[KerbApp29 alloc] init];
+            TGT.app29.cname = [[KerbCNamePrincipal alloc] initWithObject:carveAsnBlobObject(baseBlob)];
+            curBlob = getNextAsnBlob(baseBlob); //gets 0xA5
+            TGT.app1 = [[KerbApp1 alloc] initWithObject:carveAsnBlobObject(baseBlob)];
+            //now we need to get to and parse out the encrypted part for more data to make our kribi
+            curBlob = getNextAsnBlob(baseBlob); // should now be pointed to 0xA6 - encpart
+            curBlob = getNextAsnBlob(baseBlob); // should now be pointing at 0x30 sequence
+            curBlob = getNextAsnBlob(baseBlob); // 0xA0
+            curBlob = getNextAsnBlob(baseBlob); // 0x02 enctype
+            curBlob = getNextAsnBlob(baseBlob); // 0xA1
+            curBlob = getNextAsnBlob(baseBlob); // 0x02 kvno
+            curBlob = getNextAsnBlob(baseBlob); // 0xA2
+            curBlob = getNextAsnBlob(baseBlob); // 0x04 the enc data as an octet string
+            NSData* encdata = getAsnOctetStringBlob(curBlob);
+            NSData* decryptedData = decryptKrbData(KRB5_KEYUSAGE_AS_REP_ENCPART, enc_type, encdata, hash);
+
+            //printf("Decrypted encdata:\n%s\n", [decryptedData base64EncodedStringWithOptions:0].UTF8String);
+            baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)decryptedData.bytes)[0] Length:decryptedData.length Data:[[NSData alloc] initWithBytes:decryptedData.bytes length:decryptedData.length]];
+            curBlob = getNextAsnBlob(baseBlob); // 0x79 Application 25
+            parseASREPEncData(&TGT, baseBlob);
+        }
+        return TGT;
+    }@catch(NSException* exception){
+        printf("Error in parseASREP: %s\n", exception.reason.UTF8String);
+        @throw exception;
+    }
+}
 NSData* dataFromHexString(NSString* hex){
     @try{
         const char *chars = [hex UTF8String];
@@ -948,12 +1163,15 @@ void parseASREPEncData(Krb5Ticket* parsedTicket, ASN1_Obj* baseBlob){
         //parsedTicket->flags = getAsnBitString(curBlob);
         curBlob = getNextAsnBlob(baseBlob); // [5]
         curBlob = getNextAsnBlob(baseBlob);
-        curBlob = getNextAsnBlob(baseBlob); // [6]
-        curBlob = getNextAsnBlob(baseBlob); // start time
-        //capture this value
         parsedTicket->app29.start = [[KerbGeneralizedTime alloc] initWithObject:curBlob];
-        //parsedTicket->start_time = getAsnGenericStringBlob(curBlob).UTF8String;
-        curBlob = getNextAsnBlob(baseBlob); // [7]
+        curBlob = getNextAsnBlob(baseBlob); // [6]
+        if(curBlob.type == 0x06){
+            curBlob = getNextAsnBlob(baseBlob); // start time
+            //capture this value
+            parsedTicket->app29.start = [[KerbGeneralizedTime alloc] initWithObject:curBlob];
+            //parsedTicket->start_time = getAsnGenericStringBlob(curBlob).UTF8String;
+            curBlob = getNextAsnBlob(baseBlob); // [7]
+        }
         curBlob = getNextAsnBlob(baseBlob); // end time
         // capture this value
         parsedTicket->app29.end = [[KerbGeneralizedTime alloc] initWithObject:curBlob];
@@ -1147,6 +1365,7 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
     Krb5Ticket sTicket; //you get back a service ticket (sticket), not a tgs
     printf("[+] Parsing TGS-REP\n");
     @try{
+        printf("%s\n", [[NSString alloc] initWithData:[tgsrep base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
         ASN1_Obj* baseObject = [[ASN1_Obj alloc] initWithType:((Byte*)tgsrep.bytes)[0] Length:tgsrep.length Data:tgsrep];
         ASN1_Obj* curObj = getNextAsnBlob(baseObject);
         curObj = getNextAsnBlob(baseObject); // gets 0x30
@@ -1160,11 +1379,9 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
             //this means we got msg-type of krb-error
             sTicket.app1 = NULL;
             sTicket.app29 = NULL;
-            curObj = getNextAsnBlob(baseObject); // gets 0xA4
-            curObj = getNextAsnBlob(baseObject); // gets 0x18 timestamp
-            curObj = getNextAsnBlob(baseObject); // gets 0xA5
-            curObj = getNextAsnBlob(baseObject); // gets 0x02 nonce
-            curObj = getNextAsnBlob(baseObject); // gets 0xA6
+            while( curObj.type != 0xa6){
+                curObj = getNextAsnBlob(baseObject);
+            }
             curObj = getNextAsnBlob(baseObject); // gets 0x02 error type
             int error_code = getAsnIntegerBlob(curObj); //should be 68
             //printf("%d - \n", getAsnIntegerBlob(curObj));
@@ -1474,711 +1691,4 @@ NSData* LKDC_Stage2_GetPADATAInfo(NSString* remoteRealm, NSString* username){
      */
     NSData* request = createASREQ(ENCTYPE_AES256_CTS_HMAC_SHA1_96, NULL, username, remoteRealm, TRUE, ENCTYPE_AES256_CTS_HMAC_SHA1_96, [[NSArray alloc] initWithObjects:[NSNumber numberWithInt:149], nil], NULL);
     return request;
-}
-NSArray* LKDC_Stage2_ParseASREPForPADATAInfo(NSData* LKDC_Stage2_Rep, SRPClient* srp, NSString* username, NSString* password){
-    /*
-     Application 30 (1 elem)
-         SEQUENCE (11 elem)
-           [0] (1 elem)
-             INTEGER 5
-           [1] (1 elem)
-             INTEGER 30
-           [4] (1 elem)
-             GeneralizedTime 2020-02-01 23:12:31 UTC
-           [5] (1 elem)
-             INTEGER 270348
-           [6] (1 elem)
-             INTEGER 25
-           [7] (1 elem)
-             GeneralString
-           [8] (1 elem)
-             SEQUENCE (2 elem)
-               [0] (1 elem)
-                 INTEGER 1
-               [1] (1 elem)
-                 SEQUENCE (1 elem)
-                   GeneralString
-           [9] (1 elem)
-             GeneralString
-           [10] (1 elem)
-             SEQUENCE (2 elem)
-               [0] (1 elem)
-                 INTEGER 2
-               [1] (1 elem)
-                 SEQUENCE (2 elem)
-                   GeneralString
-                   GeneralString
-           [11] (1 elem)
-             GeneralString
-           [12] (1 elem)
-             OCTET STRING (1 elem)
-               SEQUENCE (8 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 16
-                   [2] (1 elem)
-                     OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 15
-                   [2] (1 elem)
-                     OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 147
-                   [2] (1 elem)
-                     OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 2
-                   [2] (1 elem)
-                     OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 250
-                   [2] (1 elem)
-                     OCTET STRING (1 elem)
-                       SEQUENCE (2 elem)
-                         [0] (1 elem)
-                           SET (1 elem)
-                             SEQUENCE (3 elem)
-                               [0] (1 elem)
-                                 INTEGER 1 (static means KRB5_SRP_GROUP_RFC5054_4096_PBKDF2_SHA512)
-                               [1] (1 elem)
-                                 OCTET STRING (16 byte) 57D71D05EBF23A3DAD7502F838430D44 //static per user
-                               [2] (1 elem)
-                                 INTEGER 4000 (number of iterations)
-                         [1] (1 elem)
-                           SEQUENCE (2 elem)
-                             [0] (1 elem)
-                               INTEGER 0
-                             [1] (1 elem)
-                               OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 136
-                   [2] (1 elem)
-                     OCTET STRING (0 elem)
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 19
-                   [2] (1 elem)
-                     OCTET STRING (1 elem)
-                       SEQUENCE (1 elem)
-                         SEQUENCE (3 elem)
-                           [0] (1 elem)
-                             INTEGER 18
-                           [1] (1 elem)
-                             GeneralString  //salt, LKDC:SHA1.6AC09426572B7818A4D9D64D378DACA687380BA8Username
-                           [2] (1 elem)
-                             OCTET STRING (4 byte) 00001000
-                 SEQUENCE (2 elem)
-                   [1] (1 elem)
-                     INTEGER 133
-                   [2] (1 elem)
-                     OCTET STRING (1 elem)
-                       SEQUENCE (3 elem)
-                         [0] (1 elem)
-                           INTEGER 2
-                         [1] (1 elem)
-                           UTF8String LKDC:SHA1.6AC09426572B7818A4D9D64D378DACA687380BA8
-                         [2] (1 elem)
-                           SEQUENCE (2 elem)
-                             [0] (1 elem)
-                               INTEGER 18
-                             [2] (1 elem)
-                               OCTET STRING (139 byte) D8898851BF1F4F9D8C29673F072A09F9AC683EEDFE040B6C216C166CC63C98B857F88…
-     */
-    ASN1_Obj* baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)LKDC_Stage2_Rep.bytes)[0] Length:LKDC_Stage2_Rep.length Data:[[NSData alloc] initWithBytes:LKDC_Stage2_Rep.bytes length:LKDC_Stage2_Rep.length]];
-    ASN1_Obj* curBlob;
-    int error_code = 0;
-    NSMutableArray<ASN1_Obj*> *finalSequence = [[NSMutableArray<ASN1_Obj*> alloc] init];
-    NSString* error_message = NULL;
-    curBlob = getNextAsnBlob(baseBlob); //parse the main blob to indicate application 11
-    //printf("%s\n", [[NSString alloc] initWithData:[baseBlob.data base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
-    if(curBlob.type == 0x6B || curBlob.type == 0x7E){
-        //we're looking at an ASREP
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x30
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA0
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 - should always be 5
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA1
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 msg type
-        int msg_type = [[KerbInteger alloc] initWithObject:curBlob].KerbIntValue;
-        if(msg_type == 0x1e){
-            //printf("got error message");
-            //this means we got msg-type of krb-error, this is what we expect
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA4
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x18 timestamp
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA5
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 nonce
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA6
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 error type
-            error_code = getAsnIntegerBlob(curBlob); //should be 68
-            //printf("%d - ", getAsnIntegerBlob(curBlob));
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
-            //printf("Real realm: %s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA8
-            curBlob = carveAsnBlobObject(baseBlob); //carves out the cname
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA9
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B realm, this is the WELLKNOWN realm again
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
-            curBlob = carveAsnBlobObject(baseBlob); // carves out sname
-            if(baseBlob.length == 0){
-                printKerbError(error_code);
-                return NULL;
-            }
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
-            error_message = getAsnGenericStringBlob(curBlob);
-            //printf("%s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-        }
-        if( error_code == 25 && [error_message isEqualToString:@"Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ"]){
-            //this is the error we expect, so continue processing
-            // pa-data type 19 tells us which type of encryption to use going forward
-            // pa-data type 133 is pa-fx-cookie, just keep and return in next message in pa-data
-            // pa-data type 250 is related to SRP (secure remote protocol)
-            //    KRB5-SRP-PA ::= SEQUENCE {
-            //    group        [0] KRB5-SRP-GROUP, (1)
-            //    salt         [1] OCTET STRING, (16B salt to use)
-            //    iterations   [2] krb5uint32 (integer like 4000 for number of interations)
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAC
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x04 octet string
-            // need to access sequence of sequences within this octet string
-            NSData* octetString = getAsnOctetStringBlob(curBlob);
-            baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)octetString.bytes)[0] Length:octetString.length Data:[[NSData alloc] initWithBytes:octetString.bytes length:octetString.length]]; //baseBlob should now point to the outer sequence
-            ASN1_Obj* seq;
-            curBlob = getNextAsnBlob(baseBlob); // curBlob gets 0x30
-            while(baseBlob.length > 0){
-                seq = carveAsnBlobObject(baseBlob); //curblob gets inner 0x30
-                NSData* curSeq = seq.data; //save it off
-                curBlob = getNextAsnBlob(seq); // gets an ASN1 blob of the sequence
-                curBlob = getNextAsnBlob(seq); // gets 0x02
-                int type = getAsnIntegerBlob(curBlob);
-                if(type == 250){
-                    /*
-                     SEQUENCE (2 elem)
-                     [1] (1 elem)
-                       INTEGER 250 <-- curBlob currently here
-                     [2] (1 elem)
-                       OCTET STRING (1 elem)
-                         SEQUENCE (2 elem)
-                           [0] (1 elem)
-                             SET (1 elem)
-                               SEQUENCE (3 elem) <--- KRB5-SRP-PA https://opensource.apple.com/source/Heimdal/Heimdal-498/lib/asn1/krb5.asn1
-                                 [0] (1 elem)
-                                   INTEGER 1 <--- need this KRB5_SRP_GROUP_RFC5054_4096_PBKDF2_SHA512
-                                 [1] (1 elem)
-                                   OCTET STRING (16 byte) 57D71D05EBF23A3DAD7502F838430D44 <--- salt
-                                 [2] (1 elem)
-                                   INTEGER 4000 <--- need this
-                           [1] (1 elem)
-                             SEQUENCE (2 elem)
-                               [0] (1 elem)
-                                 INTEGER 0
-                               [1] (1 elem)
-                                 OCTET STRING (0 elem)
-                     */
-                    curBlob = getNextAsnBlob(seq); //gets 0xA2
-                    curBlob = getNextAsnBlob(seq); //gets 0x04 octet sequence
-                    NSData* octetString250 = getAsnOctetStringBlob(curBlob);
-                    ASN1_Obj* baseBlob250 = [[ASN1_Obj alloc] initWithType: ((Byte*)octetString250.bytes)[0] Length:octetString250.length Data:[[NSData alloc] initWithBytes:octetString250.bytes length:octetString250.length]];
-                    curBlob = getNextAsnBlob(baseBlob250); //gets Sequence
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0xA0
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0x31 (set)
-                    baseBlob250 = carveAsnBlobObject(curBlob); //gets sequence (0x30)
-                    
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0xA0
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0x02 for integer 1
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0xA1
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0x04 octet string which is the salt
-                    NSData* salt = getAsnOctetStringBlob(curBlob);
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0xA2
-                    curBlob = getNextAsnBlob(baseBlob250); // gets 0x02 (iterations count)
-                    int iterations = getAsnIntegerBlob(curBlob);
-                    // need to generate the appropriate KRB5_SRP_GROUP_RFC5054_4096_PBKDF2_SHA512 hash
-                    //int
-                    //CCKeyDerivationPBKDF( CCPBKDFAlgorithm algorithm, const char *password, size_t passwordLen,
-                    //                      const uint8_t *salt, size_t saltLen,
-                    //                      CCPseudoRandomAlgorithm prf, unsigned rounds,
-                    //                      uint8_t *derivedKey, size_t derivedKeyLen)
-                    printf("[*] User Salt: ");
-                    for(int i = 0; i < salt.length; i++){
-                        printf("%02X", *((unsigned char*)salt.bytes + i));
-                    }
-                    printf("\n");
-                    printf("[*] Iterations: %d\n", iterations);
-                    //now that we have associated salt, we need to generate A and send it over
-                    int password_length = 512;
-                    NSMutableData *derivedKeyPassword = [NSMutableData dataWithLength:password_length];
-                    uint8_t * derivedKey;
-                    
-                    int result = CCKeyDerivationPBKDF(kCCPBKDF2, password.UTF8String, password.length, salt.bytes, salt.length, kCCPRFHmacAlgSHA512, iterations, derivedKeyPassword.mutableBytes, password_length);
-                    result = [srp createNewUser:username.UTF8String Password:(const unsigned char*)derivedKeyPassword.mutableBytes PasswordLen:password_length];
-                    if(result == 0){
-                        derivedKey = srp.bytes_A;
-                        srp.bytes_s = (unsigned char *)salt.bytes;
-                        srp.len_s = (int) salt.length;
-                        srp.iterations = iterations;
-                    }else{
-                        return NULL;
-                    }
-                    if(result == 0){
-                        // generated the appropriate PBKDF2 hash, now to create the new ASN1 AS-REQ struct
-                        //KRB5-SRP-PA-INIT ::= [APPLICATION 0] SEQUENCE  {
-                        //    group    [0] krb5uint32,
-                        //    a    [1] OCTET STRING
-                        //}
-                        // SEQUENCE
-                        //   [1]
-                        //      INTEGER 250
-                        //   [2]
-                        //      OCTET STRING
-                        //         Application 0
-                        //            SEQUENCE
-                        //               [0]
-                        //                  INTEGER 1
-                        //               [1]
-                        //                  OCTET STRING (512B of SRP a value, client generated)
-                        //generate this from inner to outer
-                        KerbSequence* innerSeq = [[KerbSequence alloc] initWithEmpty];
-                        [innerSeq addAsn:[[[KerbInteger alloc] initWithValue:1] collapseToAsnObject] inSpot:0];
-                        [innerSeq addAsn:[[[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:derivedKey length:512]] collapseToAsnObject] inSpot:1];
-                        ASN1_Obj* collapsedInner = [innerSeq collapseToAsnObject];
-                        ASN1_Obj* app0 = createCollapsedAsnBasicType(0x60, collapsedInner.data);
-                        ASN1_Obj* octet = createCollapsedAsnBasicType(0x04, app0.data);
-                        KerbSequence* outerSeq = [[KerbSequence alloc] initWithEmpty];
-                        [outerSeq addEmptyinSpot:0];
-                        [outerSeq addAsn:[[[KerbInteger alloc] initWithValue:250] collapseToAsnObject] inSpot:1];
-                        [outerSeq addAsn:octet inSpot:2];
-                        ASN1_Obj* collapsedSeq250 = [outerSeq collapseToAsnObject];
-                        [finalSequence addObject:collapsedSeq250];
-                    }else{
-                        printf("[-] Error in calculating PBKDF2 with plaintext password\n");
-                        return NULL;
-                    }
-                }
-                else if(type == 133){
-                    //printf("%s\n", [curSeq.data base64EncodedStringWithOptions:0].UTF8String);
-                    [finalSequence addObject:createCollapsedAsnBasicType(0x30, curSeq)];
-                }
-            }
-            return finalSequence;
-        }
-        else{
-            // if we get here, then we got a kerberos error, but not the one we were expecting
-            printKerbError(error_code);
-            printf("[-] Error message: %s", error_message.UTF8String);
-        }
-    }
-    return NULL;
-}
-NSData* LKDC_Stage3_GetPADATAInfo(NSString* remoteRealm, NSString* username, NSArray* ExtraPADATAInfo){
-    /* use real LKDC realm to get KRB_FAST data pieces
-     Application 10 (1 elem)
-     SEQUENCE (4 elem)
-       [1] (1 elem)
-         INTEGER 5
-       [2] (1 elem)
-         INTEGER 10
-       [3] (1 elem)
-         SEQUENCE (3 elem)
-           SEQUENCE (2 elem) <--- this sequence generated at the end of stage2
-             [1] (1 elem)
-               INTEGER 250
-             [2] (1 elem)
-               OCTET STRING (1 elem)
-                 Application 0 (1 elem)
-                   SEQUENCE (2 elem)
-                     [0] (1 elem)
-                       INTEGER 1
-                     [1] (1 elem)
-                       OCTET STRING (512 byte) F375D52BC2251E75CB1A9CCE5392F8699A280FB7803A16E4465E996FDCA77DB6C9BBF…
-           SEQUENCE (2 elem)
-             [1] (1 elem)
-               INTEGER 149
-             [2] (1 elem)
-               OCTET STRING (0 elem)
-           SEQUENCE (2 elem) <--- this sequence is a fx-cookie that's just passed from the last message
-             [1] (1 elem)
-               INTEGER 133
-             [2] (1 elem)
-               OCTET STRING (1 elem)
-                 SEQUENCE (3 elem)
-                   [0] (1 elem)
-                     INTEGER 2
-                   [1] (1 elem)
-                     UTF8String LKDC:SHA1.6AC09426572B7818A4D9D64D378DACA687380BA8
-                   [2] (1 elem)
-                     SEQUENCE (2 elem)
-                       [0] (1 elem)
-                         INTEGER 18
-                       [2] (1 elem)
-                         OCTET STRING (139 byte) 4BABDCD3BB4E85D226A331808B2B663DA0D32E66077A8DD5072D38A31708F4BF12895…
-       [4] (1 elem)
-         SEQUENCE (7 elem)
-           [0] (1 elem)
-             BIT STRING (32 bit) 00000000000000010000000000000000
-           [1] (1 elem)
-             SEQUENCE (2 elem)
-               [0] (1 elem)
-                 INTEGER 1
-               [1] (1 elem)
-                 SEQUENCE (1 elem)
-                   GeneralString
-           [2] (1 elem)
-             GeneralString
-           [3] (1 elem)
-             SEQUENCE (2 elem)
-               [0] (1 elem)
-                 INTEGER 2
-               [1] (1 elem)
-                 SEQUENCE (2 elem)
-                   GeneralString
-                   GeneralString
-           [5] (1 elem)
-             GeneralizedTime 2019-12-31 04:58:43 UTC
-           [7] (1 elem)
-             INTEGER 481597728
-           [8] (1 elem)
-             SEQUENCE (4 elem)
-               INTEGER 18
-               INTEGER 17
-               INTEGER 16
-               INTEGER 23
-     */
-    NSData* request = createASREQ(ENCTYPE_AES256_CTS_HMAC_SHA1_96, NULL, username, remoteRealm, TRUE, ENCTYPE_AES256_CTS_HMAC_SHA1_96, [[NSArray alloc] initWithObjects:[NSNumber numberWithInt:149], nil], ExtraPADATAInfo);
-    return request;
-}
-NSArray* LKDC_Stage3_ParseASREPForPADATAInfo(NSData* LKDC_Stage3_Rep, SRPClient* srp){
-    /*
-     
-     */
-    ASN1_Obj* baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)LKDC_Stage3_Rep.bytes)[0] Length:LKDC_Stage3_Rep.length Data:[[NSData alloc] initWithBytes:LKDC_Stage3_Rep.bytes length:LKDC_Stage3_Rep.length]];
-    ASN1_Obj* curBlob;
-    int error_code = 0;
-    NSMutableArray<ASN1_Obj*> *finalSequence = [[NSMutableArray<ASN1_Obj*> alloc] init];
-    NSString* error_message = NULL;
-    curBlob = getNextAsnBlob(baseBlob); //parse the main blob to indicate application 11
-    //printf("%s\n", [[NSString alloc] initWithData:[baseBlob.data base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
-    if(curBlob.type == 0x6B || curBlob.type == 0x7E){
-        //we're looking at an ASREP
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x30
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA0
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 - should always be 5
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA1
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 msg type
-        int msg_type = [[KerbInteger alloc] initWithObject:curBlob].KerbIntValue;
-        if(msg_type == 0x1e){
-            //this means we got msg-type of krb-error, this is what we expect
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA4
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x18 timestamp
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA5
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 nonce
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA6
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 error type
-            error_code = getAsnIntegerBlob(curBlob); //should be 91
-            //printf("%d - ", getAsnIntegerBlob(curBlob));
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
-            //printf("Real realm: %s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA8
-            curBlob = carveAsnBlobObject(baseBlob); //carves out the cname
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA9
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B realm, this is the WELLKNOWN realm again
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
-            curBlob = carveAsnBlobObject(baseBlob); // carves out sname
-            if(baseBlob.length == 0){
-                printKerbError(error_code);
-                return NULL;
-            }
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
-            error_message = getAsnGenericStringBlob(curBlob);
-            //printf("%s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-        }
-        if( error_code == 91 && [error_message isEqualToString:@"FAST factor needs more preauth data, feed it"]){
-            //this is the error we expect, so continue processing
-            // pa-data type 133 is pa-fx-cookie, just keep and return in next message in pa-data
-            // pa-data type 250 is related to SRP (secure remote protocol)
-            //KRB5-SRP-PA-SERVER-CHALLENGE ::= [APPLICATION 1] OCTET STRING -- b
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAC
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x04 octet string
-            // need to access sequence of sequences within this octet string
-            NSData* octetString = getAsnOctetStringBlob(curBlob);
-            baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)octetString.bytes)[0] Length:octetString.length Data:[[NSData alloc] initWithBytes:octetString.bytes length:octetString.length]]; //baseBlob should now point to the outer sequence
-            ASN1_Obj* seq;
-            curBlob = getNextAsnBlob(baseBlob); // curBlob gets 0x30
-            while(baseBlob.length > 0){
-                seq = carveAsnBlobObject(baseBlob); //curblob gets inner 0x30
-                NSData* curSeq = seq.data; // save it off
-                curBlob = getNextAsnBlob(seq); // gets an ASN1 blob of the sequence
-                curBlob = getNextAsnBlob(seq); // gets 0x02
-                int type = getAsnIntegerBlob(curBlob);
-                if(type == 250){
-                    /*
-                     SEQUENCE (2 elem)
-                     [1] (1 elem)
-                       INTEGER 250 <-- curBlob currently here
-                     [2] (1 elem)
-                         OCTET STRING (1 elem)
-                           Application 1 (1 elem)
-                             OCTET STRING (512 byte) BB15F00AA5BF266AA1ADF0E1DEE2F68865FC89A9509875E770CFCECAA011C2B034526 (this should be B)
-
-                     */
-                    curBlob = getNextAsnBlob(seq); //gets 0xA2
-                    curBlob = getNextAsnBlob(seq); //gets 0x04 octet sequence
-                    NSData* octetString250 = getAsnOctetStringBlob(curBlob);
-                    ASN1_Obj* baseBlob250 = [[ASN1_Obj alloc] initWithType: ((Byte*)octetString250.bytes)[0] Length:octetString250.length Data:[[NSData alloc] initWithBytes:octetString250.bytes length:octetString250.length]];
-                    curBlob = getNextAsnBlob(baseBlob250); //gets Application 1
-                    baseBlob250 = carveAsnBlobObject(curBlob); // gets octet string
-                    NSData* srp_challenge = getAsnOctetStringBlob(baseBlob250);
-                    //given the srp_challenge (which is server's public B), need to compute m
-                    int result = [srp processChallengeB:srp_challenge.bytes BLen:(int)srp_challenge.length];
-                    if(result == 0){
-                        //generate this from inner to outer
-                        /*
-                         SEQUENCE (2 elem)
-                         [1] (1 elem)
-                           INTEGER 250
-                         [2] (1 elem)
-                             OCTET STRING (1 elem)
-                               Application 2 (1 elem)
-                                 OCTET STRING (512 byte) BB15F00AA5BF266AA1ADF0E1DEE2F68865FC89A9509875E770CFCECAA011C2B034526
-                         */
-                        KerbOctetString* mValue = [[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:srp.bytes_M length:srp.len_M]];
-                        ASN1_Obj* app2 = createCollapsedAsnBasicType(0x62, [mValue collapseToNSData]);
-                        ASN1_Obj* octet = createCollapsedAsnBasicType(0x04, app2.data);
-                        KerbSequence* outerSeq = [[KerbSequence alloc] initWithEmpty];
-                        [outerSeq addEmptyinSpot:0];
-                        [outerSeq addAsn:[[[KerbInteger alloc] initWithValue:250] collapseToAsnObject] inSpot:1];
-                        [outerSeq addAsn:octet inSpot:2];
-                        ASN1_Obj* collapsedSeq250 = [outerSeq collapseToAsnObject];
-                        [finalSequence addObject:collapsedSeq250];
-                    }else{
-                        printf("\n[-] Failed to process challenge correctly\n");
-                    }
-                    
-                }
-                else if(type == 133){
-                    //printf("%s\n", [curSeq base64EncodedStringWithOptions:0].UTF8String);
-                    [finalSequence addObject:createCollapsedAsnBasicType(0x30, curSeq)];
-                }
-            }
-            return finalSequence;
-        }
-        else{
-            // if we get here, then we got a kerberos error, but not the one we were expecting
-            printKerbError(error_code);
-            printf("[-] Error message: %s", error_message.UTF8String);
-        }
-    }
-    return NULL;
-}
-NSData* LKDC_Stage4_GetPADATAInfo(NSString* remoteRealm, NSString* username, NSArray* ExtraPADATAInfo){
-    /* use real LKDC realm to get KRB_FAST data pieces
-     Application 10 (1 elem)
-       SEQUENCE (4 elem)
-         [1] (1 elem)
-           INTEGER 5
-         [2] (1 elem)
-           INTEGER 10
-         [3] (1 elem)
-           SEQUENCE (3 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 250
-               [2] (1 elem)
-                 OCTET STRING (1 elem)
-                   Application 2 (1 elem)
-                     OCTET STRING (64 byte) 3BE3CDA1B15D4AF5C1EDF5FE691B0530088C71D816CA814558D8DF0A067B0BDB3E4152…
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 149
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 133
-               [2] (1 elem)
-                 OCTET STRING (1 elem)
-                   SEQUENCE (3 elem)
-                     [0] (1 elem)
-                       INTEGER 2
-                     [1] (1 elem)
-                       UTF8String LKDC:SHA1.6AC09426572B7818A4D9D64D378DACA687380BA8
-                     [2] (1 elem)
-                       SEQUENCE (2 elem)
-                         [0] (1 elem)
-                           INTEGER 18
-                         [2] (1 elem)
-                           OCTET STRING (341 byte) 6FFE6981D28B45F53DA2C960831AEDA2FDACBBA52087142BDEF03747FEDC3C2C467ED…
-         [4] (1 elem)
-           SEQUENCE (7 elem)
-             [0] (1 elem)
-               BIT STRING (32 bit) 00000000000000010000000000000000
-             [1] (1 elem)
-               SEQUENCE (2 elem)
-                 [0] (1 elem)
-                   INTEGER 1
-                 [1] (1 elem)
-                   SEQUENCE (1 elem)
-                     GeneralString
-             [2] (1 elem)
-               GeneralString
-             [3] (1 elem)
-               SEQUENCE (2 elem)
-                 [0] (1 elem)
-                   INTEGER 2
-                 [1] (1 elem)
-                   SEQUENCE (2 elem)
-                     GeneralString
-                     GeneralString
-             [5] (1 elem)
-               GeneralizedTime 2019-12-31 04:58:43 UTC
-             [7] (1 elem)
-               INTEGER 481597728
-             [8] (1 elem)
-               SEQUENCE (4 elem)
-                 INTEGER 18
-                 INTEGER 17
-                 INTEGER 16
-                 INTEGER 23
-     */
-    NSData* request = createASREQ(ENCTYPE_AES256_CTS_HMAC_SHA1_96, NULL, username, remoteRealm, TRUE, ENCTYPE_AES256_CTS_HMAC_SHA1_96, [[NSArray alloc] initWithObjects:[NSNumber numberWithInt:149], nil], ExtraPADATAInfo);
-    return request;
-}
-NSArray* LKDC_Stage4_ParseASREPForPADATAInfo(NSData* LKDC_Stage4_Rep, SRPClient* srp){
-    /*
-     Application 30 (1 elem)
-     SEQUENCE (11 elem)
-       [0] (1 elem)
-         INTEGER 5
-       [1] (1 elem)
-         INTEGER 30
-       [4] (1 elem)
-         GeneralizedTime 2019-12-30 18:58:44 UTC
-       [5] (1 elem)
-         INTEGER 48933
-       [6] (1 elem)
-         INTEGER 25
-       [7] (1 elem)
-         GeneralString
-       [8] (1 elem)
-         SEQUENCE (2 elem)
-           [0] (1 elem)
-             INTEGER 1
-           [1] (1 elem)
-             SEQUENCE (1 elem)
-               GeneralString
-       [9] (1 elem)
-         GeneralString
-       [10] (1 elem)
-         SEQUENCE (2 elem)
-           [0] (1 elem)
-             INTEGER 2
-           [1] (1 elem)
-             SEQUENCE (2 elem)
-               GeneralString
-               GeneralString
-       [11] (1 elem)
-         GeneralString
-       [12] (1 elem)
-         OCTET STRING (1 elem)
-           SEQUENCE (6 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 16
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 15
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 147
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 2
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 136
-               [2] (1 elem)
-                 OCTET STRING (0 elem)
-             SEQUENCE (2 elem)
-               [1] (1 elem)
-                 INTEGER 19
-               [2] (1 elem)
-                 OCTET STRING (1 elem)
-                   SEQUENCE (1 elem)
-                     SEQUENCE (3 elem)
-                       [0] (1 elem)
-                         INTEGER 18
-                       [1] (1 elem)
-                         GeneralString
-                       [2] (1 elem)
-                         OCTET STRING (4 byte) 00001000
-     */
-    ASN1_Obj* baseBlob = [[ASN1_Obj alloc] initWithType: ((Byte*)LKDC_Stage4_Rep.bytes)[0] Length:LKDC_Stage4_Rep.length Data:[[NSData alloc] initWithBytes:LKDC_Stage4_Rep.bytes length:LKDC_Stage4_Rep.length]];
-    ASN1_Obj* curBlob;
-    int error_code = 0;
-    NSMutableArray<ASN1_Obj*> *finalSequence = [[NSMutableArray<ASN1_Obj*> alloc] init];
-    NSString* error_message = NULL;
-    curBlob = getNextAsnBlob(baseBlob); //parse the main blob to indicate application 11
-    //printf("%s\n", [[NSString alloc] initWithData:[baseBlob.data base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
-    if(curBlob.type == 0x6B || curBlob.type == 0x7E){
-        //we're looking at an ASREP
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x30
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA0
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 - should always be 5
-        curBlob = getNextAsnBlob(baseBlob); // gets 0xA1
-        curBlob = getNextAsnBlob(baseBlob); // gets 0x02 msg type
-        int msg_type = [[KerbInteger alloc] initWithObject:curBlob].KerbIntValue;
-        if(msg_type == 0x1e){
-            //this means we got msg-type of krb-error, this is what we expect
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA4
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x18 timestamp
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA5
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 nonce
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA6
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x02 error type
-            error_code = getAsnIntegerBlob(curBlob); //should be 25
-            //printf("%d - ", getAsnIntegerBlob(curBlob));
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
-            //printf("Real realm: %s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA8
-            curBlob = carveAsnBlobObject(baseBlob); //carves out the cname
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xA9
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B realm, this is the WELLKNOWN realm again
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
-            curBlob = carveAsnBlobObject(baseBlob); // carves out sname
-            if(baseBlob.length == 0){
-                printKerbError(error_code);
-                return NULL;
-            }
-            curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
-            curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
-            error_message = getAsnGenericStringBlob(curBlob);
-            //printf("%s\n", getAsnGenericStringBlob(curBlob).UTF8String);
-        }
-        if( error_code == 25 && [error_message isEqualToString:@"Need to use PA-ENC-TIMESTAMP/PA-PK-AS-REQ"]){
-            printKerbError(error_code);
-            printf("[-] Should have gotten a valid TGT at this point\n");
-        }
-        else{
-            // if we get here, then we got a kerberos error, but not the one we were expecting
-            printKerbError(error_code);
-            return NULL;
-        }
-    }else{
-        printf("[*********] SUCCESS!!!\n");
-    }
-    return NULL;
 }

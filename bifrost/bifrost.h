@@ -11,7 +11,6 @@
 #import "asn1.h"
 #import "kirbi.h"
 #import "connection.h"
-#import "SRPClient.h"
 #import <CommonCrypto/CommonKeyDerivation.h>
 
 @interface bifrost : NSObject
@@ -27,11 +26,14 @@
 -(NSString*)removePrincipal:(NSString*)principal fromKeytab:(NSString*)path;
 -(NSString*)getKeyFromKeytab:(NSString*)keytab andPrincipal:(NSString*)principal withEnctype:(int)enctype;
 -(int)getEncValueFromEnctype:(NSString*)enctype;
--(NSString*)askTGTConnectDomain:(NSString*)connectDomain EncType:(int)enctype Hash:(NSString*)hash Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype;
+-(NSString*)askTGTConnectDomain:(NSString*)connectDomain EncType:(int)enctype Hash:(NSString*)hash Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype LKDCIP:(NSString*)lkdcip;
 -(NSString*)askTGTLKDCByIP:(NSString*)IP EncType:(int)enctype Password:(NSString*)password Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype;
--(NSString*)askTGSConnectDomain:(NSString*)connectDomain TGT:(NSString*)tgtKirbi Service:(NSString*)service ServiceDomain:(NSString*)serviceDomain Kerberoast:(bool)kerberoasting;
+-(NSString*)askTGSConnectDomain:(NSString*)connectDomain TGT:(NSString*)tgtKirbi Service:(NSString*)service ServiceDomain:(NSString*)serviceDomain Kerberoast:(bool)kerberoasting LKDCIP:(NSString*)LKDCIP;
 -(NSString*)s4u2selfTicket:(NSString*)tgtKirbi ConnectDomain:(NSString*)connectDomainInput TargetUser:(NSString*)targetUser;
 -(NSString*)s4uTicket:(NSString*)tgtKirbi ConnectDomain:(NSString*)connectDomainInput TargetUser:(NSString*)targetUser SPN:(NSString*)spn;
+-(NSString*)askLKDCDomainByIP:(NSString*)IP;
+-(bool)createLKDCCACHECONFDataPrincipal:(NSString*)principalName TicketData:(NSString*)ticketData CCacheName:(NSString*)cacheName;
+-(bool)storeLKDCConfDataFriendlyName:(NSString*)friendlyName Hostname:(NSString*)hostname Password:(NSString*)password CCacheName:(NSString*)cacheName;
 @end
 void printKrbError(krb5_context context, krb5_error_code ret);
 

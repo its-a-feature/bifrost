@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "bifrost.h"
 void printHelp(){
-    printf("\nUsage:\n./bifrost -action [dump | list | askhash | describe | asktgt | asktgs | s4u | ptt | remove]\n");
+    printf("\nUsage:\n./bifrost -action [dump | list | askhash | describe | asktgt | asktgs | s4u | ptt | remove | asklkdcdomain]\n");
     printf("For dump action:\n");
     printf("\t-source [tickets | keytab]\n");
     printf("\t\tfor keytab, optional -path to specify a keytab\n");
@@ -51,6 +51,10 @@ void printHelp(){
     printf("\t for keytabs: -source keytab -principal [principal name] (removes all entries for that principal)\n");
     printf("\t for keytabs: optionally specify -name to not use the default keytab\n");
     printf("\t you can't remove a specific ccache principal entry since it seems to not be implemented in heimdal\n");
+    printf("For asklkdcdomain:\n");
+    printf("\t -LKDCIP [remote IP address here]\n");
+    printf("For storelkdcinfo:\n");
+    printf("\t -username [username] -LKDCIP [remote host IP] -password [user's password] -cacheName [cache name to store info]");
 }
 int main(int argc, const char * argv[]) {
     printf(
@@ -165,6 +169,7 @@ int main(int argc, const char * argv[]) {
             NSString* hash = NULL;
             NSString* keytab = NULL;
             NSString* connectDomain = NULL;
+            NSString* LKDCIP = NULL;
             bool supportAll = true;
             if( [arguments objectForKey:@"enctype"] ){
                 NSString* enctypeString = [arguments stringForKey:@"enctype"];
@@ -199,8 +204,8 @@ int main(int argc, const char * argv[]) {
             if( [arguments objectForKey:@"connectDomain"] ){
                 connectDomain = [arguments stringForKey:@"connectDomain"];
             }
-            else {
-                connectDomain = domain;
+            if( [arguments objectForKey:@"LKDCIP"] ){
+                LKDCIP = [arguments stringForKey:@"LKDCIP"];
             }
             if( [arguments objectForKey:@"password"] ){
                 //TODO: go back and make this generate a password hash instead
@@ -212,24 +217,12 @@ int main(int argc, const char * argv[]) {
                 password = [[NSString alloc] initWithData:[[NSData alloc] initWithBase64EncodedString:encodedPassword options:0] encoding:NSUTF8StringEncoding];
             }
             if(password != NULL){
-                //we have a plaintext password eitehr for regular AD or for LKDC
-                if( [arguments objectForKey:@"LKDCByIP"]){
-                    //Use the supplied data to connect to the LKDC by IP address (could be local or remote, but IP is supplied)
-                    NSString* IP = [arguments stringForKey:@"LKDCByIP"];
-                    [test askTGTLKDCByIP:IP EncType:enctype Password:password Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
+                hash = [test genPasswordHashPassword:password.UTF8String Length:password.length Enc:ENCTYPE_AES256_CTS_HMAC_SHA1_96 Username:username Domain:domain Pretty:FALSE];
+                enctype = ENCTYPE_AES256_CTS_HMAC_SHA1_96;
+                if(hash == NULL){
+                    printf("[-] Failed to gen password hash from plaintext\n");
+                    return 0;
                 }
-                else if( [arguments objectForKey:@"LKDCByHostname"]){
-                    //Use the supplied data to connect to the LKDC by Hostname, so it will be resolved
-                }
-                else{
-                    NSString *tgtStatus = [test getTGTUsername:username Password:password Domain:domain];
-                    if(tgtStatus == NULL){
-                        return -1;
-                    }else{
-                        printf("%s\n", tgtStatus.UTF8String);
-                    }
-                }
-                return 0;
             }
             if( [arguments objectForKey:@"hash"]){
                 //get a user's TGT with a username, hash, and domain
@@ -261,10 +254,20 @@ int main(int argc, const char * argv[]) {
             if( tgtEnctype != 0 ){
                 //specify the desired end ticket encryption type if desired to be different than the hash's enc type and not negotiated
                 printf("[*] Requesting hash type: %d\n", tgtEnctype);
-                [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype];
+                if(connectDomain == NULL){
+                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype LKDCIP:LKDCIP];
+                }else{
+                    [test askTGTConnectDomain:connectDomain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:false TgtEnctype:tgtEnctype LKDCIP:LKDCIP];
+                }
+                
             }
             else{
-                [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype];
+                if(connectDomain == NULL){
+                    [test askTGTConnectDomain:domain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype LKDCIP:LKDCIP];
+                }else{
+                    [test askTGTConnectDomain:connectDomain EncType:enctype Hash:hash Username:username Domain:domain SupportAll:supportAll TgtEnctype:enctype LKDCIP:LKDCIP];
+                }
+                
             }
             return 0;
             
@@ -274,6 +277,7 @@ int main(int argc, const char * argv[]) {
             NSString* services;
             NSString* serviceDomain = NULL;
             NSString* connectDomain = NULL;
+            NSString* LKDCIP = NULL;
             if( [arguments objectForKey:@"ticket"] ){
                 encodedTicket = [arguments stringForKey:@"ticket"];
             }else{
@@ -299,10 +303,12 @@ int main(int argc, const char * argv[]) {
             if( [arguments objectForKey:@"connectDomain"] ){
                 connectDomain = [arguments stringForKey:@"connectDomain"];
             }
-            
+            if( [arguments objectForKey:@"LKDCIP"] ){
+                LKDCIP = [arguments stringForKey:@"LKDCIP"];
+            }
             for(int i = 0; i < [serviceList count]; i++){
                 NSString* service = (NSString*)[serviceList objectAtIndex:i];
-                NSString* result = [test askTGSConnectDomain:connectDomain TGT:encodedTicket Service:service ServiceDomain:serviceDomain Kerberoast:kerberoast];
+                NSString* result = [test askTGSConnectDomain:connectDomain TGT:encodedTicket Service:service ServiceDomain:serviceDomain Kerberoast:kerberoast LKDCIP:LKDCIP];
             }
             return 0;
         }
@@ -395,6 +401,48 @@ int main(int argc, const char * argv[]) {
                 //this means we're just doing the S4U2Self scenario
                 [test s4u2selfTicket:encodedTicket ConnectDomain:connectDomain TargetUser:targetUser];
             }
+        }
+        else if( [action isEqualToString:@"asklkdcdomain"] ){
+            NSString* LKDCIP = NULL;
+            if( [arguments objectForKey:@"LKDCIP"] ){
+                LKDCIP = [arguments stringForKey:@"LKDCIP"];
+            }
+            else{
+                printf("[-] Missing required parameter of LKDCIP\n");
+            }
+        
+            [test askLKDCDomainByIP:LKDCIP];
+        }
+        else if( [action isEqualToString:@"storelkdcinfo"] ){
+            NSString* username = NULL;
+            NSString* LKDCIP = NULL;
+            NSString* password = NULL;
+            NSString* cacheName = NULL;
+            if( [arguments objectForKey:@"LKDCIP"] ){
+                LKDCIP = [arguments stringForKey:@"LKDCIP"];
+            }
+            else{
+                printf("[-] Missing required parameter of LKDCIP\n");
+            }
+            if( [arguments objectForKey:@"username"] ){
+                username = [arguments stringForKey:@"username"];
+            }
+            else{
+                printf("[-] Missing required parameter of username\n");
+            }
+            if( [arguments objectForKey:@"password"] ){
+                password = [arguments stringForKey:@"password"];
+            }
+            else{
+                printf("[-] Missing required parameter of password\n");
+            }
+            if( [arguments objectForKey:@"cacheName"] ){
+                cacheName = [arguments stringForKey:@"cacheName"];
+            }
+            else{
+                printf("[-] Missing required parameter of cacheName\n");
+            }
+            [test storeLKDCConfDataFriendlyName:username Hostname:LKDCIP Password:password CCacheName:cacheName];
         }
         else {
             printHelp();

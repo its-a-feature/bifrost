@@ -22,12 +22,6 @@
 		5DEC51B9236407930000F04E /* KerbGenericString.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51B8236407930000F04E /* KerbGenericString.h */; };
 		5DEC51BB236510690000F04E /* KerbApp29.h in Headers */ = {isa = PBXBuildFile; fileRef = 5DEC51BA236510690000F04E /* KerbApp29.h */; };
 		5DEC51BD236510790000F04E /* KerbApp29.m in Sources */ = {isa = PBXBuildFile; fileRef = 5DEC51BC236510790000F04E /* KerbApp29.m */; };
-		C31ED0F624143A620078B006 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C31ED0F424143A620078B006 /* libssl.a */; };
-		C31ED0F724143A620078B006 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C31ED0F524143A620078B006 /* libcrypto.a */; };
-		C355E68723E7DECC00A7AD41 /* srp.h in Headers */ = {isa = PBXBuildFile; fileRef = C355E68623E7DECC00A7AD41 /* srp.h */; };
-		C355E68923E7DEE000A7AD41 /* srp.c in Sources */ = {isa = PBXBuildFile; fileRef = C355E68823E7DEE000A7AD41 /* srp.c */; };
-		C355E68B23E7E29100A7AD41 /* SRPClient.h in Headers */ = {isa = PBXBuildFile; fileRef = C355E68A23E7E29100A7AD41 /* SRPClient.h */; };
-		C355E68D23E7E2A500A7AD41 /* SRPClient.m in Sources */ = {isa = PBXBuildFile; fileRef = C355E68C23E7E2A500A7AD41 /* SRPClient.m */; };
 		C38E2ABD2354E3AD001C40B5 /* bifrost.h in Headers */ = {isa = PBXBuildFile; fileRef = C38E2ABC2354E3AD001C40B5 /* bifrost.h */; };
 		C38E2ABF2354E3AD001C40B5 /* bifrost.m in Sources */ = {isa = PBXBuildFile; fileRef = C38E2ABE2354E3AD001C40B5 /* bifrost.m */; };
 		C38E2ADF2354F0B9001C40B5 /* Kerberos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38E2ADE2354F0B9001C40B5 /* Kerberos.framework */; };
@@ -62,12 +56,6 @@
 		5DEC51B8236407930000F04E /* KerbGenericString.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbGenericString.h; sourceTree = "<group>"; };
 		5DEC51BA236510690000F04E /* KerbApp29.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KerbApp29.h; sourceTree = "<group>"; };
 		5DEC51BC236510790000F04E /* KerbApp29.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KerbApp29.m; sourceTree = "<group>"; };
-		C31ED0F424143A620078B006 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "../../../usr/local/Cellar/openssl@1.1/1.1.1d/lib/libssl.a"; sourceTree = "<group>"; };
-		C31ED0F524143A620078B006 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "../../../usr/local/Cellar/openssl@1.1/1.1.1d/lib/libcrypto.a"; sourceTree = "<group>"; };
-		C355E68623E7DECC00A7AD41 /* srp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = srp.h; sourceTree = "<group>"; };
-		C355E68823E7DEE000A7AD41 /* srp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = srp.c; sourceTree = "<group>"; };
-		C355E68A23E7E29100A7AD41 /* SRPClient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SRPClient.h; sourceTree = "<group>"; };
-		C355E68C23E7E2A500A7AD41 /* SRPClient.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SRPClient.m; sourceTree = "<group>"; };
 		C38E2AB92354E3AD001C40B5 /* libbifrost.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libbifrost.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		C38E2ABC2354E3AD001C40B5 /* bifrost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bifrost.h; sourceTree = "<group>"; };
 		C38E2ABE2354E3AD001C40B5 /* bifrost.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = bifrost.m; sourceTree = "<group>"; };
@@ -91,8 +79,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C31ED0F624143A620078B006 /* libssl.a in Frameworks */,
-				C31ED0F724143A620078B006 /* libcrypto.a in Frameworks */,
 				C38E2ADF2354F0B9001C40B5 /* Kerberos.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -150,10 +136,6 @@
 				5DEC51BC236510790000F04E /* KerbApp29.m */,
 				5D01E82A236CD9A500A50D21 /* KerbApp12.h */,
 				5D01E82C236CD9B600A50D21 /* KerbApp12.m */,
-				C355E68623E7DECC00A7AD41 /* srp.h */,
-				C355E68823E7DEE000A7AD41 /* srp.c */,
-				C355E68A23E7E29100A7AD41 /* SRPClient.h */,
-				C355E68C23E7E2A500A7AD41 /* SRPClient.m */,
 			);
 			path = bifrost;
 			sourceTree = "<group>";
@@ -161,8 +143,6 @@
 		C38E2ADD2354F0B9001C40B5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C31ED0F524143A620078B006 /* libcrypto.a */,
-				C31ED0F424143A620078B006 /* libssl.a */,
 				C38E2ADE2354F0B9001C40B5 /* Kerberos.framework */,
 			);
 			name = Frameworks;
@@ -178,9 +158,7 @@
 				C3FAEC6B236411FF00E95BF0 /* KerbGeneralizedTime.h in Headers */,
 				C3FAEC652364100600E95BF0 /* KerbBitString.h in Headers */,
 				5DD39B5F235A3B48000B7FF2 /* kirbi.h in Headers */,
-				C355E68723E7DECC00A7AD41 /* srp.h in Headers */,
 				C3FAEC76236420D700E95BF0 /* KerbSNamePrincipal.h in Headers */,
-				C355E68B23E7E29100A7AD41 /* SRPClient.h in Headers */,
 				5DEC51B1236402620000F04E /* KerbInteger.h in Headers */,
 				5D01E82B236CD9A500A50D21 /* KerbApp12.h in Headers */,
 				5DEC51B9236407930000F04E /* KerbGenericString.h in Headers */,
@@ -251,7 +229,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C355E68D23E7E2A500A7AD41 /* SRPClient.m in Sources */,
 				C3FAEC69236411EE00E95BF0 /* KerbGeneralizedTime.m in Sources */,
 				5D01E82D236CD9B600A50D21 /* KerbApp12.m in Sources */,
 				C38E2ABF2354E3AD001C40B5 /* bifrost.m in Sources */,
@@ -263,7 +240,6 @@
 				C3FAEC672364103C00E95BF0 /* KerbBitString.m in Sources */,
 				5DD39B59235A341D000B7FF2 /* kirbi.m in Sources */,
 				5DEC51B7236407810000F04E /* KerbGenericString.m in Sources */,
-				C355E68923E7DEE000A7AD41 /* srp.c in Sources */,
 				C3FAEC78236420EB00E95BF0 /* KerbSNamePrincipal.m in Sources */,
 				C3FAEC6F236416BA00E95BF0 /* KerbSequence.m in Sources */,
 				5DCB3D12235FC7A40084BD72 /* connection.m in Sources */,

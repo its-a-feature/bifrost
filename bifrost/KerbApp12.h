@@ -125,6 +125,7 @@
 @property KerbGenericString* targetUser; //this is for S4U2Self only
 @property KerbOctetString* key12;
 @property NSData* innerTicket;
+@property KerbSequence* checksumdata;
 //standard TGS-REQ information, service should be like cifs/hostname.domain.com
 -(id)initWithTicket:(struct Krb5Ticket*)TGT Service:(NSString*)service TargetDomain:(NSString*)targetDomain Kerberoasting:(bool)kerberoast;
 //for S4U2Self
