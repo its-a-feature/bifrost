@@ -246,7 +246,7 @@ int main(int argc, const char * argv[]) {
                 }
                 printf("[+] Using hash: %s\n", hash.UTF8String);
             }
-            else {
+            else if(password == NULL) {
                 printf("[-] No hash or password supplied\n");
                 return -1;
             }
