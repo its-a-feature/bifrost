@@ -1165,7 +1165,7 @@ void parseASREPEncData(Krb5Ticket* parsedTicket, ASN1_Obj* baseBlob){
         curBlob = getNextAsnBlob(baseBlob);
         parsedTicket->app29.start = [[KerbGeneralizedTime alloc] initWithObject:curBlob];
         curBlob = getNextAsnBlob(baseBlob); // [6]
-        if(curBlob.type == 0x06){
+        if(curBlob.type == 0xA6){
             curBlob = getNextAsnBlob(baseBlob); // start time
             //capture this value
             parsedTicket->app29.start = [[KerbGeneralizedTime alloc] initWithObject:curBlob];
@@ -1185,7 +1185,8 @@ void parseASREPEncData(Krb5Ticket* parsedTicket, ASN1_Obj* baseBlob){
         curBlob = getNextAsnBlob(baseBlob); // 0x1B realm
         parsedTicket->app29.realm29 = [[KerbGenericString alloc] initWithObject:curBlob];
         curBlob = getNextAsnBlob(baseBlob); // [10]
-        parsedTicket->app29.sname29 = [[KerbSNamePrincipal alloc] initWithObject:carveAsnBlobObject(baseBlob)];
+        ASN1_Obj* snameBlob = carveAsnBlobObject(baseBlob); //carves out sequence blob and moves baseObject forward past it
+        parsedTicket->app29.sname29 = [[KerbSNamePrincipal alloc] initWithObject:snameBlob];
     }@catch(NSException* exception){
         printf("[-] Error in parseASREPEncData: %s\n", exception.reason.UTF8String);
         @throw exception;

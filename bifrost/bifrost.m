@@ -735,6 +735,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     NSData* asrep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length:holder.length];
     Krb5Ticket tgt;
+    //printf("%s\n", [asrep base64EncodedStringWithOptions:0].UTF8String);
     if(lkdcip != NULL){
         tgt = parseLKDCASREP(asrep, hash, enctype);
     }else{

@@ -32,22 +32,26 @@ KerbGenericString* domain; //ex: domain.com
 }
 -(id)initWithObject:(ASN1_Obj*)baseObject{
     if(self = [super init]){
-        //given an ASN1 blob of the above structure, parse out the necessary information
-        //assuming that baseObject points to sequence
-        ASN1_Obj* curBlob = getNextAsnBlob(baseObject); // gets 0xA0
-        curBlob = getNextAsnBlob(baseObject); // gets 0x02
-        self.krb5_nt_srv_inst = [[KerbInteger alloc] initWithObject:curBlob];
-        curBlob = getNextAsnBlob(baseObject); // gets 0xA1
-        curBlob = getNextAsnBlob(baseObject); // gets sequence
-        curBlob = getNextAsnBlob(baseObject); // gets the general string
-        self.account = [[KerbGenericString alloc] initWithValue:getAsnGenericStringBlob(curBlob)];
-        if(baseObject.data.length != 0){
+        @try{
+            //given an ASN1 blob of the above structure, parse out the necessary information
+            //assuming that baseObject points to sequence
+            ASN1_Obj* curBlob = getNextAsnBlob(baseObject); // gets 0xA0
+            curBlob = getNextAsnBlob(baseObject); // gets 0x02
+            self.krb5_nt_srv_inst = [[KerbInteger alloc] initWithObject:curBlob];
+            curBlob = getNextAsnBlob(baseObject); // gets 0xA1
+            curBlob = getNextAsnBlob(baseObject); // gets sequence
             curBlob = getNextAsnBlob(baseObject); // gets the general string
-            self.domain = [[KerbGenericString alloc] initWithValue:getAsnGenericStringBlob(curBlob)];
-        }else{
-            self.domain = NULL;
+            self.account = [[KerbGenericString alloc] initWithValue:getAsnGenericStringBlob(curBlob)];
+            if(baseObject.data.length != 0){
+                curBlob = getNextAsnBlob(baseObject); // gets the general string
+                self.domain = [[KerbGenericString alloc] initWithValue:getAsnGenericStringBlob(curBlob)];
+            }else{
+                self.domain = NULL;
+            }
+        }@catch(NSException* exception){
+            printf("[-] Failed to parse SNamePrincipal\n");
+            @throw exception;
         }
-        
     }
     return self;
 }
