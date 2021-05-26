@@ -7,6 +7,7 @@
 //
 
 #import "kirbi.h"
+#import "bifrost.h"
 #import <CommonCrypto/CommonDigest.h>
 #import <CommonCrypto/CommonHMAC.h>
 #import <CommonCrypto/CommonKeyDerivation.h>
@@ -73,7 +74,7 @@ NSString* describeFlags(int flag){
     }
     return flags;
 }
-void printKerbError(int error_code){
+void printKerbErrorCode(int error_code){
     // try to print error codes based on common ones:
     printf("[-] Error code: %d\n", error_code);
     //information from https://ldapwiki.com/wiki/Kerberos%20Error%20Codes
@@ -713,6 +714,10 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x02 error type
                 int error_code = getAsnIntegerBlob(curBlob); //should be 68
                 //printf("%d - ", getAsnIntegerBlob(curBlob));
+                if(error_code == 24){
+                    printf("[-] KDC_ERR_PREAUTH_FAILED: Bad Username/Password combination\n");
+                    return TGT;
+                }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
                 NSString* realRealm = getAsnGenericStringBlob(curBlob);
@@ -724,13 +729,13 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
                 curBlob = carveAsnBlobObject(baseBlob); // carves out sname
                 if(baseBlob.length == 0){
-                    printKerbError(error_code);
+                    printKerbErrorCode(error_code);
                     return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
                 NSString* error_message = getAsnGenericStringBlob(curBlob);
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 printf("[-] e-data error: %s", error_message.UTF8String);
                 return TGT;
             }
@@ -939,13 +944,13 @@ Krb5Ticket parseLKDCASREP(NSData* asrep, NSString* hash, int enc_type){
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
                 curBlob = carveAsnBlobObject(baseBlob); // carves out sname
                 if(baseBlob.length == 0){
-                    printKerbError(error_code);
+                    printKerbErrorCode(error_code);
                     return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
                 NSString* error_message = getAsnGenericStringBlob(curBlob);
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 printf("[-] e-data error: %s", error_message.UTF8String);
                 return TGT;
             }
@@ -1391,31 +1396,31 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
             NSString* realRealm = getAsnGenericStringBlob(curObj);
             //printf("Real realm: %s\n", getAsnGenericStringBlob(curObj).UTF8String);
             if(baseObject.length == 0){
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xA8
             curObj = carveAsnBlobObject(baseObject); //carves out the cname
             if(baseObject.length == 0){
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xA9
             curObj = getNextAsnBlob(baseObject); // gets 0x1B realm, this is the WELLKNOWN realm again
             if(baseObject.length == 0){
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xAA
             curObj = carveAsnBlobObject(baseObject); // carves out sname
             if(baseObject.length == 0){
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xAB
             curObj = getNextAsnBlob(baseObject); // gets 0x1B e-text data
             NSString* error_message = getAsnGenericStringBlob(curObj);
-            printKerbError(error_code);
+            printKerbErrorCode(error_code);
             printf("[-] e-data error message: %s", error_message.UTF8String);
             //printf("%s", [[NSString alloc] initWithData:[curObj.data base64EncodedDataWithOptions:nil] encoding:NSUTF8StringEncoding].UTF8String );
             return sTicket;
@@ -1625,7 +1630,7 @@ NSString* LKDC_Stage1_ParseASREPForRemoteRealm(NSData* LKDC_Stage1_Rep){
             curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
             curBlob = carveAsnBlobObject(baseBlob); // carves out sname
             if(baseBlob.length == 0){
-                printKerbError(error_code);
+                printKerbErrorCode(error_code);
                 return NULL;
             }
             curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
@@ -1637,7 +1642,7 @@ NSString* LKDC_Stage1_ParseASREPForRemoteRealm(NSData* LKDC_Stage1_Rep){
             return realRealm;
         }
         else{
-            printKerbError(error_code);
+            printKerbErrorCode(error_code);
             printf("[-] Error message: %s", error_message.UTF8String);
         }
     }

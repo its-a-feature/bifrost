@@ -257,11 +257,8 @@
 				DEAD_CODE_STRIPPING = YES;
 				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
 				GENERATE_MASTER_OBJECT_FILE = NO;
-				"HEADER_SEARCH_PATHS[arch=*]" = "/users/cody/bifrost/**";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
-				);
+				"HEADER_SEARCH_PATHS[arch=*]" = "./**";
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				LINKER_DISPLAYS_MANGLED_NAMES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -277,10 +274,7 @@
 				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
 				GENERATE_MASTER_OBJECT_FILE = NO;
 				"HEADER_SEARCH_PATHS[arch=*]" = "~/**";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				LINKER_DISPLAYS_MANGLED_NAMES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.12;
 				PRODUCT_NAME = "$(TARGET_NAME)";

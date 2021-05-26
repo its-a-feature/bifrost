@@ -366,14 +366,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					"/Volumes/Apfell/**",
-					"/usr/local/include/**",
-				);
+				"HEADER_SEARCH_PATHS[arch=*]" = "./**";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SDKROOT)/usr/lib/system",
-					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
 				);
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -386,14 +382,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
-				"HEADER_SEARCH_PATHS[arch=*]" = (
-					"/usr/local/include/**",
-					"/Volumes/Apfell/**",
-				);
+				"HEADER_SEARCH_PATHS[arch=*]" = "./**";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SDKROOT)/usr/lib/system",
-					"/usr/local/Cellar/openssl@1.1/1.1.1d/lib",
 				);
 				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
