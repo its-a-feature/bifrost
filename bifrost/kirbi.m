@@ -717,6 +717,12 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
                 if(error_code == 24){
                     printf("[-] KDC_ERR_PREAUTH_FAILED: Bad Username/Password combination\n");
                     return TGT;
+                }else if(error_code == 23){
+                    printf("[-] KDC_ERR_KEY_EXPIRED: User's password expired. Reset it before you can get a TGT\n");
+                    return TGT;
+                }else if(error_code != 68){
+                    printKerbErrorCode(error_code);
+                    return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B client realm
@@ -1369,9 +1375,9 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
                GeneralString
      */
     Krb5Ticket sTicket; //you get back a service ticket (sticket), not a tgs
-    printf("[+] Parsing TGS-REP\n");
+    printf("[+] Parsing TGSREP\n");
     @try{
-        printf("%s\n", [[NSString alloc] initWithData:[tgsrep base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
+        //printf("%s\n", [[NSString alloc] initWithData:[tgsrep base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
         ASN1_Obj* baseObject = [[ASN1_Obj alloc] initWithType:((Byte*)tgsrep.bytes)[0] Length:tgsrep.length Data:tgsrep];
         ASN1_Obj* curObj = getNextAsnBlob(baseObject);
         curObj = getNextAsnBlob(baseObject); // gets 0x30

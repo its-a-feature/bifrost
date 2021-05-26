@@ -780,7 +780,7 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     printf("[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String);
     NSData* tgsreq = createTGSREQ(TGT, service, kerberoasting, serviceDomain);
-    printf("%s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String);
+    //printf("%s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
         return NULL;
