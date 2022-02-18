@@ -15,7 +15,7 @@
 
 @interface bifrost : NSObject
 -(NSString*)dumpCredentialsToKirbiCCache:(char*)ccache Destroy:(bool)destroy;
--(void)listAllCCaches;
+-(NSString*)listAllCCaches;
 -(NSString*)ktutilKeyTabPath:(NSString*)keyTabPath;
 -(NSString*)genPasswordHashPassword:(char*)password Length:(int)password_len Enc:(int)enc_type Username:(NSString*)username Domain:(NSString*)domain Pretty:(Boolean)prettyprint;
 -(NSString*)getTGTUsername:(NSString*)usernameToUse Password:(NSString*)passwordToUse Domain:(NSString*)domainToUse;

