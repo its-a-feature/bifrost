@@ -304,6 +304,9 @@ NSData* appendAsnObj(ASN1_Obj* first, ASN1_Obj* second){
 ASN1_Obj* collapseAsnSequence(NSArray<ASN1_Obj*> *sequence){
     //given an array of ASN1_blobs where:
     //  each blob in sequence is already the most compressed of all of its subparts
+    if(sequence == nil){
+        return [ASN1_Obj alloc];
+    }
     ASN1_Obj* collapsed = [ASN1_Obj alloc];
     @try{
         NSMutableData* collapsing = [NSMutableData alloc];

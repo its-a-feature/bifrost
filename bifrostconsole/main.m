@@ -27,8 +27,10 @@ NSString* printHelp(){
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t if using a hash, specify -enctype [aes256 | aes128 | rc4] -hash [hash_here]\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -tgtEnctype [aes256|aes128|rc4] to request a TGT with a specific encryption type\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -supportAll false to indicate that you want a TGT to match your hash enctype, otherwise will try to get AES256\n"]];
+    [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -LKDCIP to connect to an LKDC instance for a domain that's in the format of LKDC:SHA1...\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t if using a keytab, specify -enctype and -keytab [keytab path] to pull a specific hash from the keytab\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -tgtEnctype [aes256|aes128|rc4] to request a TGT with a specific encryption type\n"]];
+    [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -LKDCIP to connect to an LKDC instance for a domain that's in the format of LKDC:SHA1...\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t\t\t optionally specify -supportAll false to indicate that you want a TGT to match your hash enctype, otherwise will try to get AES256\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"For describe action:\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t-ticket base64KirbiTicket\n"]];
@@ -38,6 +40,7 @@ NSString* printHelp(){
     [output appendString:[[NSString alloc] initWithFormat:@"\t optionally specify -connectDomain to connect to a domain other than the one specified in the ticket\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t optionally specify -serviceDomain to request a service ticket in a domain other than the one specified in the ticket\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t optionally specify -kerberoast true to indicate a request for rc4 instead of aes256\n"]];
+    [output appendString:[[NSString alloc] initWithFormat:@"\t optionally specify -LKDCIP to connect to an LKDC instance for a domain that's in the format of LKDC:SHA1...\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"For s4u:\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t-ticket [base64 of TGT]\n"]];
     [output appendString:[[NSString alloc] initWithFormat:@"\t-targetUser [target user in current domain, or targetuser@domain for a different domain]\n"]];
@@ -68,9 +71,11 @@ NSDictionary* get_arguments_from_json_string(char* arguments){
     }
     return jsonObject;
 }
-NSDictionary* get_arguments_from_cli(){
-    NSUserDefaults *arguments = [NSUserDefaults standardUserDefaults];
+NSDictionary* get_arguments_from_cli(int argc, const char * argv[]){
     NSMutableDictionary* jsonData = [[NSMutableDictionary alloc] init];
+    
+    NSUserDefaults *arguments = [NSUserDefaults standardUserDefaults];
+    //NSMutableDictionary* jsonData = [[NSMutableDictionary alloc] init];
     [jsonData setValue:[arguments stringForKey:@"action"] forKey:@"action"];
     [jsonData setValue:[arguments stringForKey:@"ticket"] forKey:@"ticket"];
     [jsonData setValue:[arguments stringForKey:@"source"] forKey:@"source"];
@@ -98,7 +103,7 @@ NSDictionary* get_arguments_from_cli(){
             jsonData[@"kerberoast"] = @false;
         }
     }else{
-        jsonData[@"kerberoast"] = @true;
+        jsonData[@"kerberoast"] = @false;
     }
     [jsonData setValue:[arguments stringForKey:@"connectDomain"] forKey:@"connectDomain"];
     [jsonData setValue:[arguments stringForKey:@"hash"] forKey:@"hash"];
@@ -110,6 +115,22 @@ NSDictionary* get_arguments_from_cli(){
     [jsonData setValue:[arguments stringForKey:@"targetUser"] forKey:@"targetUser"];
     [jsonData setValue:[arguments stringForKey:@"spn"] forKey:@"spn"];
     [jsonData setValue:[arguments stringForKey:@"cacheName"] forKey:@"cacheName"];
+    for(int i = 1; i < argc-1; i+=2){
+        //printf("argv[%d]: %s\n", i, argv[i]);
+        //printf("argv[%d]: %s\n", i+1, argv[i+1]);
+        NSString* key = [[NSString alloc] initWithUTF8String:argv[i]+1];
+        NSString* value = [[NSString alloc] initWithUTF8String:argv[i+1]];
+        if([key isEqualToString:@"supportAll"] || [key isEqualToString:@"kerberoast"]){
+            if([value isEqualToString:@"true"]){
+                [jsonData setValue:@true forKey:key];
+            } else {
+                [jsonData setValue:@false forKey:key];
+            }
+        } else {
+            [jsonData setValue:value forKey:key];
+        }
+    }
+    //NSLog(@"argumentData: %@", jsonData);
     return jsonData;
 }
 const char* run(NSDictionary* arguments){
@@ -339,7 +360,7 @@ const char* run(NSDictionary* arguments){
             }
             bool kerberoast = false;
             if( [arguments objectForKey:@"kerberoast"]){
-                kerberoast = [arguments objectForKey:@"kerberoast"];
+                kerberoast = [[arguments objectForKey:@"kerberoast"] boolValue];
             }
             
             NSArray* serviceList = [services componentsSeparatedByString:@","];
@@ -468,42 +489,6 @@ const char* run(NSDictionary* arguments){
             NSString* result = [test askLKDCDomainByIP:LKDCIP];
             [output appendString:result];
         }
-        else if( [action isEqualToString:@"storelkdcinfo"] ){
-            NSString* username = NULL;
-            NSString* LKDCIP = NULL;
-            NSString* password = NULL;
-            NSString* cacheName = NULL;
-            if( [arguments objectForKey:@"LKDCIP"] ){
-                LKDCIP = [arguments objectForKey:@"LKDCIP"];
-            }
-            else{
-                [output appendString:[[NSString alloc] initWithFormat:@"[-] Missing required parameter of LKDCIP\n"]];
-            }
-            if( [arguments objectForKey:@"username"] ){
-                username = [arguments objectForKey:@"username"];
-            }
-            else{
-                [output appendString:[[NSString alloc] initWithFormat:@"[-] Missing required parameter of username\n"]];
-            }
-            if( [arguments objectForKey:@"password"] ){
-                password = [arguments objectForKey:@"password"];
-            }
-            else{
-                [output appendString:[[NSString alloc] initWithFormat:@"[-] Missing required parameter of password\n"]];
-            }
-            if( [arguments objectForKey:@"cacheName"] ){
-                cacheName = [arguments objectForKey:@"cacheName"];
-            }
-            else{
-                [output appendString:[[NSString alloc] initWithFormat:@"[-] Missing required parameter of cacheName\n"]];
-            }
-            bool result = [test storeLKDCConfDataFriendlyName:username Hostname:LKDCIP Password:password CCacheName:cacheName];
-            if(result){
-                [output appendString:@"Completed Successfully"];
-            }else{
-                [output appendString:@"Failed"];
-            }
-        }
         else {
             return printHelp().UTF8String;
         }
@@ -528,7 +513,7 @@ const char* execute_memory(char* args){
 
 int main(int argc, const char * argv[]) {
     @try{
-        NSDictionary* arguments = get_arguments_from_cli();
+        NSDictionary* arguments = get_arguments_from_cli(argc, argv);
         printf("%s", run(arguments));
         return 0;
     }@catch(id errorMessage){

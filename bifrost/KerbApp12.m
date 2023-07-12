@@ -12,7 +12,7 @@
 @implementation KerbApp12 //TGS-REQ
 bool isS4U2Self;
 bool isS4U2Proxy;
-bool kerberoasting;
+bool kerberoasting = false;
 KerbSequence* PADATA_FOR_USER;
 KerbSequence* PADATA_FOR_TGS;
 KerbSequence* PADATA_OPTIONS;
@@ -128,7 +128,6 @@ KerbSequence* checksumdata;
         }else{
             [sequence addAsn:checksum_asn inSpot:3];
         }
-    
         //[sequence addEmptyinSpot:3];
         nonce = arc4random_uniform(RAND_MAX);
         [sequence addAsn:[[[KerbInteger alloc] initWithValue:nonce] collapseToAsnObject] inSpot:4];
@@ -149,13 +148,24 @@ KerbSequence* checksumdata;
                 const krb5_keyblock *key, krb5_keyusage usage,
                 const krb5_data *input, krb5_checksum *cksum)
         */
-    krb5_checksum checksum;
-    krb5_keyusage usage;
-    krb5_data input;
-    krb5_keyblock key;
-    krb5_context context;
-    krb5_cksumtype checksumtype;
+    return nil;
+    /*
+    uint8_t HMACdata[CC_SHA256_DIGEST_LENGTH] = {0};
     NSData* inData = [self.checksumdata collapseToNSData];
+    printf("inData: %s\n", [[inData base64EncodedStringWithOptions:0] UTF8String]);
+    NSLog(@"inData: %@", inData);
+    printf("key data: %s\nkey data length: %d\n", [[ticket.app29.key.KerbOctetvalue base64EncodedStringWithOptions:0] UTF8String], ticket.app29.key.KerbOctetvalue.length);
+    NSLog(@"key data: %@", ticket.app29.key.KerbOctetvalue);
+    CCHmac(kCCHmacAlgSHA256, ticket.app29.key.KerbOctetvalue.bytes, ticket.app29.key.KerbOctetvalue.length, inData.bytes, inData.length, HMACdata);
+    printf("cHMAC: %s\n", [[[[NSData alloc] initWithBytes:HMACdata length:sizeof(HMACdata)] base64EncodedStringWithOptions:0] UTF8String] );
+    NSLog(@"cHMAC: %@", [[NSData alloc] initWithBytes:HMACdata length:sizeof(HMACdata)]);
+    krb5_checksum checksum = {0}; //malloc(sizeof(krb5_checksum));
+    krb5_keyusage usage= {0};
+    krb5_data input= {0};
+    krb5_keyblock key= {0};
+    krb5_context context= {0};
+    krb5_cksumtype checksumtype= {0};
+    
     krb5_error_code ret;
     if ((ret = krb5_init_context (&context) != 0)){
         printf("[-] Failed to get Kerberos context for checksum generation\n");
@@ -163,9 +173,18 @@ KerbSequence* checksumdata;
     }
     if(ticket.app29.enctype29.KerbIntValue == ENCTYPE_AES256_CTS_HMAC_SHA1_96){
         checksumtype = CKSUMTYPE_HMAC_SHA1_96_AES256;
+        printf("checksum type aes256\n");
     }else if(ticket.app29.enctype29.KerbIntValue == ENCTYPE_AES128_CTS_HMAC_SHA1_96){
         checksumtype = CKSUMTYPE_HMAC_SHA1_96_AES128;
+        printf("checksum type aes128\n");
+    }else{
+        printf("Failed to get checksum type: %d\n", ticket.app29.enctype29.KerbIntValue);
+        return NULL;
     }
+    checksum.contents = malloc(CC_SHA1_DIGEST_LENGTH);
+    printf("checksum size: %d\n", CC_SHA1_DIGEST_LENGTH);
+    checksum.checksum_type = checksumtype;
+    
     key.length = ticket.app29.key.KerbOctetvalue.length;
     key.magic = KV5M_KEYBLOCK;
     key.enctype = ticket.app29.enctype29.KerbIntValue;
@@ -173,12 +192,25 @@ KerbSequence* checksumdata;
     usage = KRB5_KEYUSAGE_TGS_REQ_AUTH_CKSUM;
     memcpy(key.contents, ticket.app29.key.KerbOctetvalue.bytes, ticket.app29.key.KerbOctetvalue.length);
     input.length = inData.length;
-    input.data = malloc(input.length);
+    input.data = malloc(inData.length);
     input.magic = KV5M_CHECKSUM;
     memcpy(input.data, inData.bytes, inData.length);
-    krb5_c_make_checksum(context, checksumtype, &key, usage, &input, &checksum);
-    KerbOctetString* checksumOctet = [[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:checksum.contents length:checksum.length]];
-    return NULL;
+    krb5_error_code result = krb5_c_make_checksum(context, checksumtype, &key, usage, &input, &checksum);
+    printf("result of krb5_c_make_checksum: %d\n", result);
+    uint8_t validChecksum = 0;
+    result = krb5_c_verify_checksum(context, &key, usage, &input, &checksum, &validChecksum);
+    printf("result of krb5_c_verify_checksum: %d with validity checks: %d\n", result, validChecksum);
+    NSData* checksumData = [[NSData alloc] initWithBytes:checksum.contents length:checksum.length];
+    printf("raw old checksum: %s\n", [[checksumData base64EncodedStringWithOptions:0] UTF8String]);
+    KerbOctetString* oldchecksumOctet = [[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:checksum.contents length:checksum.length]];
+    KerbOctetString* checksumOctet = [[KerbOctetString alloc] initWithValue:[[NSData alloc] initWithBytes:HMACdata length:CC_SHA256_DIGEST_LENGTH]];
+    printf("oldchecksum: %s\n", [[oldchecksumOctet getHexValue] UTF8String]);
+    printf("newchecksum: %s\n", [[checksumOctet getHexValue] UTF8String]);
+    KerbSequence* sequence = [[KerbSequence alloc] initWithEmpty];
+    [sequence addAsn:[[[KerbInteger alloc] initWithValue:CKSUMTYPE_HMAC_SHA1_96_AES256] collapseToAsnObject] inSpot:0];
+    [sequence addAsn:[checksumOctet collapseToAsnObject] inSpot:1];
+    return [sequence collapseToAsnObject];
+     */
 }
 -(NSData*) createPADataTGSReq:(Krb5Ticket) ticket{
     /*

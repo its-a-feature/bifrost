@@ -77,6 +77,7 @@
 typedef struct Krb5Ticket{
     KerbApp1* app1;
     KerbApp29* app29;
+    NSMutableString* error;
 } Krb5Ticket;
 NSString* describeFlags(int flag);
 NSData* createKirbi(Krb5Ticket krb_cred);

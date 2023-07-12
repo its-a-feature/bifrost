@@ -16,7 +16,7 @@
 @interface kdc : NSObject
 @property int fd;
 
--(int)connectDomain:(char*)domain;
+-(int)connectDomain:(char*)domain Output:(NSMutableString*)output;
 -(int)sendBytes:(NSData*)bytes;
 -(int)connectLKDCByIP:(char*)ip;
 -(int)connectLKDCByHostname:(char*)hostname;

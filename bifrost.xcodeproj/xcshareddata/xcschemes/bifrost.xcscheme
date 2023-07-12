@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1220"
+   LastUpgradeVersion = "1340"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
       <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C38E2AB82354E3AD001C40B5"
+               BuildableName = "libbifrost.a"
+               BlueprintName = "bifrost"
+               ReferencedContainer = "container:bifrost.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
          <BuildActionEntry
             buildForTesting = "YES"
             buildForRunning = "YES"
@@ -34,7 +48,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      launchStyle = "0"
+      launchStyle = "1"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
@@ -50,12 +64,6 @@
             ReferencedContainer = "container:bifrostconsole.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <CommandLineArguments>
-         <CommandLineArgument
-            argument = "-action asktgs -ticket doIDUTCCA02gBgIEAAAAAaEGAgQAAAAWooIByjCCAcZhggHCMIIBvqAGAgQAAAAFoTQbMkxLREM6U0hBMS5DMDcxMUQ3OTkyNjM5RTUxQjVFRERBQUREMDM2OURDMzBDOTAyMTE3okowSKAGAgQAAAACoT4wPBsGa3JidGd0GzJMS0RDOlNIQTEuQzA3MTFENzk5MjYzOUU1MUI1RUREQUFERDAzNjlEQzMwQzkwMjExN6OCATAwggEsoAYCBAAAABKhBgIEAAAAAaKCARgEggEUWFG/AQx10j9Wy4luKPtFpkYhcdcZkS4OT5UqQekQzVIfCklxsWseoxHS8x0k1JCV9wS78vdQwO+rzSxlp7Hfnr6CG/0oDDYIz3tM2OVfxARSj0amhxQETl2HoABa02VuTTsnGGK/9Yr5eaMyrUCW4CpXogx9MbtKgQhsFihElAQs7ONeKrP7R/bDJY/dxRGGHAHYPm6nA7K+LgJdn9aKYOm6SRC0GOG+HnPnfNoS4LC+hN34cPZo4uCaPP1+EkJVJRiE1Y6sCLszpbOxx2o6diC9cgJDp2DOCmmTdyVol0VAVg4n6Udp+Qf+7i7XV8Qz3khYp6LbeqSWhIHOQW2oMiwPMSzjsT+HSEvWLlEC4W88A+tpo4IBazCCAWegBgIEAAAAAKKCAVsEggFXfYIBUzCCAU+gggFLMIIBRzCCAUOgLjAsoAYCBAAAABKhIgQgniNOK6Yk+eAhoj8G9cEAgZGt6VKR4eTZMatK2SbSZsqhNBsyTEtEQzpTSEExLkMwNzExRDc5OTI2MzlFNTFCNUVEREFBREQwMzY5REMzMEM5MDIxMTeiFzAVoAYCBAAAAAGhCzAJGwdzcGVjdGVyowcDBQAAYAAApREYDzIwMjIwNTI2MTYzODAzWqYRGA8yMDIyMDUyNzAyMzgwM1qnERgPMTk3MDAxMDEwMDAwMDBaqDQbMkxLREM6U0hBMS5DMDcxMUQ3OTkyNjM5RTUxQjVFRERBQUREMDM2OURDMzBDOTAyMTE3qUowSKAGAgQAAAACoT4wPBsGa3JidGd0GzJMS0RDOlNIQTEuQzA3MTFENzk5MjYzOUU1MUI1RUREQUFERDAzNjlEQzMwQzkwMjExNw== -LKDCIP 192.168.0.130 -service cifs/localhost"
-            isEnabled = "YES">
-         </CommandLineArgument>
-      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -79,7 +87,6 @@
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
-      customArchiveName = "bifrostconsole"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

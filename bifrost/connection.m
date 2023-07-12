@@ -13,7 +13,7 @@
 
 int fd = 0;
 
--(int)connectDomain:(char*) domain{
+-(int)connectDomain:(char*) domain Output:(NSMutableString*) output {
     int sockfd;
     struct hostent *server;
     struct sockaddr_in servaddr;
@@ -21,14 +21,14 @@ int fd = 0;
     //create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if(sockfd == -1){
-        printf("[-] Failed to create socket\n");
+        [output appendString:@"[-] Failed to create socket\n"];
         return -1;
     }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     server = gethostbyname(domain);
     if(server == NULL){
-        printf("[-] Failed to find computer\n");
+        [output appendString:@"[-] Failed to find computer\n"];
         return -1;
     }
     servaddr.sin_port = htons(88);
@@ -39,21 +39,21 @@ int fd = 0;
     {
         //try to connect to them and if they don't work, try the next one
         strcpy(ip , inet_ntoa(*addr_list[i]) );
-        printf("[*] %s resolved to : %s\n" , domain , ip);
+        [output stringByAppendingFormat:@"[*] %s resolved to : %s\n" , domain , ip];
         servaddr.sin_addr.s_addr = inet_addr(ip);
         if(connect(sockfd, &servaddr, sizeof(servaddr)) < 0){
-            printf("[-] Failed to connect\n");
+            [output appendString:@"[-] Failed to connect\n"];
             continue;
         }
-        printf("[+] Successfully connected to remote domain\n");
+        [output appendString:@"[+] Successfully connected to remote domain\n"];
         fd = sockfd;
         return 0;
     }
-    printf("[-] Failed to connect to any IP address on port 88\n");
+    [output appendString:@"[-] Failed to connect to any IP address on port 88\n"];
     return -1;
 }
--(int)connectLKDCByHostname:(char*) hostname{
-    return [self connectDomain: hostname];
+-(int)connectLKDCByHostname:(char*) hostname Output:(NSMutableString*) output {
+    return [self connectDomain: hostname Output:output];
 }
 -(int)connectLKDCByIP:(char*) ip{
     // connect to the LKDC of a remote computer

@@ -74,9 +74,9 @@ NSString* describeFlags(int flag){
     }
     return flags;
 }
-void printKerbErrorCode(int error_code){
+NSMutableString* getKerbErrorCode(int error_code){
     // try to print error codes based on common ones:
-    printf("[-] Error code: %d\n", error_code);
+    //printf("[-] Error code: %d\n", error_code);
     //information from https://ldapwiki.com/wiki/Kerberos%20Error%20Codes
     NSString* meaning = NULL;
     switch(error_code){
@@ -131,6 +131,9 @@ void printKerbErrorCode(int error_code){
         case 0x25:
             meaning = @"The clock skew is too great";
             break;
+        case 0x29:
+            meaning = @"The checksum is invalid";
+            break;
         case 0x2D:
             meaning = @"Service key not available";
             break;
@@ -147,7 +150,7 @@ void printKerbErrorCode(int error_code){
             meaning = @"Unknown, check error code";
             break;
     }
-    printf("[-] Error code meaning: %s\n", meaning.UTF8String);
+    return [[NSMutableString alloc] initWithFormat:@"[-] Error code (%d) meaning: %s\n", error_code, meaning.UTF8String];
 }
 NSString* describeTicket(Krb5Ticket ticket){
     NSMutableString* desc = [[NSMutableString alloc] init];
@@ -715,13 +718,13 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
                 int error_code = getAsnIntegerBlob(curBlob); //should be 68
                 //printf("%d - ", getAsnIntegerBlob(curBlob));
                 if(error_code == 24){
-                    printf("[-] KDC_ERR_PREAUTH_FAILED: Bad Username/Password combination\n");
+                    TGT.error = @"[-] KDC_ERR_PREAUTH_FAILED: Bad Username/Password combination\n";
                     return TGT;
                 }else if(error_code == 23){
-                    printf("[-] KDC_ERR_KEY_EXPIRED: User's password expired. Reset it before you can get a TGT\n");
+                    TGT.error = @"[-] KDC_ERR_KEY_EXPIRED: User's password expired. Reset it before you can get a TGT\n";
                     return TGT;
                 }else if(error_code != 68){
-                    printKerbErrorCode(error_code);
+                    TGT.error = getKerbErrorCode(error_code);
                     return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xA7
@@ -735,14 +738,14 @@ Krb5Ticket parseASREP(NSData* asrep, NSString* hash, int enc_type){
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
                 curBlob = carveAsnBlobObject(baseBlob); // carves out sname
                 if(baseBlob.length == 0){
-                    printKerbErrorCode(error_code);
+                    TGT.error = getKerbErrorCode(error_code);
                     return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
                 NSString* error_message = getAsnGenericStringBlob(curBlob);
-                printKerbErrorCode(error_code);
-                printf("[-] e-data error: %s", error_message.UTF8String);
+                TGT.error = getKerbErrorCode(error_code);
+                [TGT.error appendString:[[NSString alloc] initWithFormat:@"[-] e-data error: %s", error_message.UTF8String]];
                 return TGT;
             }
             while(curBlob.type != 0xA4){
@@ -950,14 +953,14 @@ Krb5Ticket parseLKDCASREP(NSData* asrep, NSString* hash, int enc_type){
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
                 curBlob = carveAsnBlobObject(baseBlob); // carves out sname
                 if(baseBlob.length == 0){
-                    printKerbErrorCode(error_code);
+                    TGT.error = getKerbErrorCode(error_code);
                     return TGT;
                 }
                 curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
                 curBlob = getNextAsnBlob(baseBlob); // gets 0x1B e-text data
                 NSString* error_message = getAsnGenericStringBlob(curBlob);
-                printKerbErrorCode(error_code);
-                printf("[-] e-data error: %s", error_message.UTF8String);
+                TGT.error = getKerbErrorCode(error_code);
+                [TGT.error stringByAppendingFormat:@"[-] e-data error: %s", error_message.UTF8String];
                 return TGT;
             }
             while(curBlob.type != 0xA4){
@@ -1052,9 +1055,13 @@ NSData* encryptKrbData(krb5_keyusage usage, int enctype, NSData* plaintextDataTo
             printKrbError(context,ret);
             return NULL;
         }
+        
         result = [[NSData alloc] initWithBytes:encrypted_bytes.ciphertext.data length:encrypted_bytes.ciphertext.length];
-        //NSData* testing = decryptKrbData(KRB5_KEYUSAGE_AS_REQ_PA_ENC_TS, enctype,result, hash);
-        //printf("Decrypted encrypted pa data: %s", [testing base64EncodedStringWithOptions:0].UTF8String);
+        //printf("\n\nDecrypted pa data: %s\n", [plaintextDataToEncrypt base64EncodedStringWithOptions:0].UTF8String);
+        //printf("Encrypted pa data: %s\n", [[result base64EncodedStringWithOptions:0] UTF8String]);
+        //NSData* testing = decryptKrbData(KRB5_KEYUSAGE_TGS_REQ_AUTH, enctype, result, hash);
+        //NSData* testing = decryptKrbData(KRB5_KEYUSAGE_AS_REQ_PA_ENC_TS, enctype, result, hash);
+        //printf("Decrypted encrypted pa data: %s\n\n", [testing base64EncodedStringWithOptions:0].UTF8String);
         return result;
     }@catch(NSException* exception){
         printf("[-] Error in encryptKrbData: %s\n", exception.reason.UTF8String);
@@ -1286,6 +1293,7 @@ NSData* createTGSREQ(Krb5Ticket TGT, NSString* service, bool kerberoasting, NSSt
         @throw exception;
     }
 }
+
 Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
     //takes in the tgs response and the TGT that made the request, and parses out the response
     /*
@@ -1375,9 +1383,9 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
                GeneralString
      */
     Krb5Ticket sTicket; //you get back a service ticket (sticket), not a tgs
-    printf("[+] Parsing TGSREP\n");
+    //printf("[+] Parsing TGSREP\n");
     @try{
-        //printf("%s\n", [[NSString alloc] initWithData:[tgsrep base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
+        //printf("\nTGS-REP: %s\n", [[NSString alloc] initWithData:[tgsrep base64EncodedDataWithOptions:0] encoding:NSUTF8StringEncoding].UTF8String );
         ASN1_Obj* baseObject = [[ASN1_Obj alloc] initWithType:((Byte*)tgsrep.bytes)[0] Length:tgsrep.length Data:tgsrep];
         ASN1_Obj* curObj = getNextAsnBlob(baseObject);
         curObj = getNextAsnBlob(baseObject); // gets 0x30
@@ -1402,32 +1410,32 @@ Krb5Ticket parseTGSREP(NSData* tgsrep, Krb5Ticket TGT, bool kerberoasting){
             NSString* realRealm = getAsnGenericStringBlob(curObj);
             //printf("Real realm: %s\n", getAsnGenericStringBlob(curObj).UTF8String);
             if(baseObject.length == 0){
-                printKerbErrorCode(error_code);
+                sTicket.error = getKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xA8
             curObj = carveAsnBlobObject(baseObject); //carves out the cname
             if(baseObject.length == 0){
-                printKerbErrorCode(error_code);
+                sTicket.error = getKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xA9
             curObj = getNextAsnBlob(baseObject); // gets 0x1B realm, this is the WELLKNOWN realm again
             if(baseObject.length == 0){
-                printKerbErrorCode(error_code);
+                sTicket.error = getKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xAA
             curObj = carveAsnBlobObject(baseObject); // carves out sname
             if(baseObject.length == 0){
-                printKerbErrorCode(error_code);
+                sTicket.error = getKerbErrorCode(error_code);
                 return sTicket;
             }
             curObj = getNextAsnBlob(baseObject); // gets 0xAB
             curObj = getNextAsnBlob(baseObject); // gets 0x1B e-text data
             NSString* error_message = getAsnGenericStringBlob(curObj);
-            printKerbErrorCode(error_code);
-            printf("[-] e-data error message: %s", error_message.UTF8String);
+            sTicket.error = getKerbErrorCode(error_code);
+            [sTicket.error stringByAppendingFormat:@"[-] e-data error message: %s", error_message.UTF8String];
             //printf("%s", [[NSString alloc] initWithData:[curObj.data base64EncodedDataWithOptions:nil] encoding:NSUTF8StringEncoding].UTF8String );
             return sTicket;
         }
@@ -1636,7 +1644,7 @@ NSString* LKDC_Stage1_ParseASREPForRemoteRealm(NSData* LKDC_Stage1_Rep){
             curBlob = getNextAsnBlob(baseBlob); // gets 0xAA
             curBlob = carveAsnBlobObject(baseBlob); // carves out sname
             if(baseBlob.length == 0){
-                printKerbErrorCode(error_code);
+                printf("%s\n", [getKerbErrorCode(error_code) UTF8String]);
                 return NULL;
             }
             curBlob = getNextAsnBlob(baseBlob); // gets 0xAB
@@ -1648,7 +1656,7 @@ NSString* LKDC_Stage1_ParseASREPForRemoteRealm(NSData* LKDC_Stage1_Rep){
             return realRealm;
         }
         else{
-            printKerbErrorCode(error_code);
+            printf("%s\n", [getKerbErrorCode(error_code) UTF8String]);
             printf("[-] Error message: %s", error_message.UTF8String);
         }
     }
